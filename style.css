@@ -1,0 +1,10 @@
+/* Mặc định ẩn khung chứa nút bấm đi và làm nó mờ */
+.khung-nut-hanh-dong {
+    opacity: 0;
+    transition: opacity 0.5s ease; /* Tạo hiệu ứng hiện lên mượt mà */
+}
+
+/* Khi chuột di chuột vào HÀNG (.hang-du-lieu), hiện khung nút lên */
+.hang-du-lieu:hover .khung-nut-hanh-dong {
+    opacity: 0.8;
+}
