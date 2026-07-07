@@ -1,10 +1,17 @@
 /* Mặc định ẩn khung chứa nút bấm đi và làm nó mờ */
 .khung-nut-hanh-dong {
-    opacity: 0;
-    transition: opacity 0.5s ease; /* Tạo hiệu ứng hiện lên mượt mà */
+  opacity: 0;
+  transition: opacity 0.5s ease; /* Tạo hiệu ứng hiện lên mượt mà */
 }
 
 /* Khi chuột di chuột vào HÀNG (.hang-du-lieu), hiện khung nút lên */
 .hang-du-lieu:hover .khung-nut-hanh-dong {
-    opacity: 0.8;
+  opacity: 0.8;
+}
+.khung-nut-hanh-dong button {
+  background-color: rgba(212, 18, 18, 0.9); /* Màu nền đỏ */
+  color: white; /* Chữ đổi sang trắng chuẩn luôn */
+  border: none; /* Xóa viền đen của nút */
+  border-radius: 2px; /* Bo góc nhẹ cho nút bấm đẹp hơn */
+  cursor: pointer; /* Biến con chuột thành hình bàn tay khi chỉ vào */
 }
