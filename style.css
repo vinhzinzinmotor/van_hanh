@@ -1,3 +1,4 @@
+/*file style.css*/
 /* Mặc định ẩn khung chứa nút bấm đi và làm nó mờ */
 .khung-nut-hanh-dong {
   opacity: 0;
@@ -14,4 +15,35 @@
   border: none; /* Xóa viền đen của nút */
   border-radius: 2px; /* Bo góc nhẹ cho nút bấm đẹp hơn */
   cursor: pointer; /* Biến con chuột thành hình bàn tay khi chỉ vào */
+}
+.thanh-cot th {
+  text-align: center; /* Căn giữa chữ trong các ô tiêu đề cột */
+  font-weight: bold; /* In đậm chữ trong các ô tiêu đề cột */
+  white-space: normal; /* cho chữ xuống dòng trong các ô tiêu đề cột */
+  vertical-align: middle; /* Căn giữa chữ theo chiều dọc trong các ô tiêu đề cột */
+  font-family: roboto, sans-serif; /* Đổi font chữ trong các ô tiêu đề cột */
+}
+/* Hiệu ứng viền xanh đậm khi ô được chọn giống Google Sheets */
+td[contenteditable="false"].dang-chon {
+  outline: 2px solid #1a73e8 !important; /* Viền màu xanh đặc trưng */
+  background-color: rgba(26, 115, 232, 0.05); /* Nền xanh cực nhẹ */
+}
+/* Màu nền xanh nhạt cho các ô nằm trong vùng bôi đen (Excel/Google Sheets) */
+td.vung-chon {
+  background-color: rgba(26, 115, 232, 0.12) !important;
+}
+/* Chặn trình duyệt bôi đen văn bản khi kéo chuột chọn ô */
+.hang-du-lieu td {
+  -webkit-user-select: none; /* Dành cho Safari */
+  -moz-user-select: none; /* Dành cho Firefox */
+  -ms-user-select: none; /* Dành cho IE/Edge */
+  user-select: none; /* Chuẩn chung cho Chrome, Edge, Opera */
+}
+
+/* Khi ô được mở khóa dblclick để sửa chữ thì cho phép bôi đen text bình thường */
+.hang-du-lieu td[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
