@@ -22,6 +22,7 @@ let tổngSốHàngHiệnTại = 0;
 let dangKeoChuot = false;
 let hangBatDau = -1;
 let cotBatDauVung = -1;
+let cotKetThucVung = -1;
 
 // 2. Tự động tạo các tiêu đề cột (A, B, C...)
 for (let i = 0; i < soCot; i++) {
@@ -205,6 +206,7 @@ function taoMoiMotHang() {
       );
       hangBatDau = tatCaHang.indexOf(hangMoi);
       cotBatDauVung = c;
+      cotKetThucVung = c;
 
       // Xóa toàn bộ các vùng ô đã bôi đen hoặc đang chọn trước đó
       xoaToanBoVungChon();
@@ -254,6 +256,7 @@ function taoMoiMotHang() {
           }
         });
       });
+      cotKetThucVung = cotHienTaiVtri; // Cập nhật cột kết thúc vùng khi di chuột qua ô mới
     });
 
     // 3. Giữ nguyên tính năng NHÁY ĐÚP CHUỘT ĐỂ SỬA SÂU (DBLCLICK)
@@ -346,6 +349,54 @@ document.addEventListener("keydown", function (e) {
   // Tìm xem có ô nào đang được chọn không
   const oDangChon = thanBang.querySelector(".dang-chon");
   if (!oDangChon) return; // Nếu không có ô nào được chọn thì bỏ qua
+
+  if (e.ctrlKey && e.shiftKey && e.key === "ArrowDown") {
+    e.preventDefault();
+    const tatCaHang = Array.from(
+      thanBang.getElementsByClassName("hang-du-lieu"),
+    );
+
+    // Tìm hàng cuối cùng có dữ liệu trong phạm vi các CỘT đang chọn
+    const minCot = Math.min(cotBatDauVung, cotKetThucVung);
+    const maxCot = Math.max(cotBatDauVung, cotKetThucVung);
+
+    let hangCuoiCoData = -1;
+    for (let i = tatCaHang.length - 1; i >= 0; i--) {
+      const hang = tatCaHang[i].querySelectorAll("td:not(:first-child)");
+      // Chỉ kiểm tra các cột nằm trong vùng đang chọn
+      const coData = Array.from(hang).some(
+        (o, index) =>
+          index >= minCot && index <= maxCot && o.innerText.trim() !== "",
+      );
+      if (coData) {
+        hangCuoiCoData = i;
+        break;
+      }
+    }
+    if (hangCuoiCoData === -1) return;
+
+    // Mở rộng vùng bôi đen: giữ nguyên cột, kéo hàng xuống cuối
+    const minHang = Math.min(hangBatDau, hangCuoiCoData);
+    const maxHang = Math.max(hangBatDau, hangCuoiCoData);
+
+    tatCaHang.forEach((h, indexH) => {
+      const cacOTrongHang = h.querySelectorAll("td:not(:first-child)");
+      cacOTrongHang.forEach((o, indexC) => {
+        if (
+          indexH >= minHang &&
+          indexH <= maxHang &&
+          indexC >= minCot &&
+          indexC <= maxCot
+        ) {
+          o.classList.add("vung-chon");
+        } else {
+          o.classList.remove("vung-chon");
+        }
+      });
+    });
+
+    return;
+  }
 
   // Nếu ô đó ĐANG ở chế độ chỉnh sửa sâu (nháy đúp con trỏ) thì để mặc định, không can thiệp
   if (oDangChon.getAttribute("contenteditable") === "true") return;
