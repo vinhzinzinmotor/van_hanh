@@ -649,7 +649,7 @@ function themMotHangVaoBang(tbody, rowIndex, tongSoCot) {
   });
 
   const btnDel = document.createElement("button");
-  btnDel.innerText = "×";
+  btnDel.innerText = "-";
   btnDel.className = "btn-row-action btn-row-del";
   btnDel.title = "Xóa hàng này";
   btnDel.addEventListener("click", () => {
@@ -1165,7 +1165,6 @@ btnXuLy.addEventListener("click", function () {
   });
 
   showToast(`Chuẩn hóa hoàn tất ${danhSachKq.length} hàng!`, "ok");
-  ghiLogLichSuLenGoogle(mangDuLieuLog);
 });
 
 // Nâng cấp: CHỈNH SỬA MẪU IN ĐƠN
@@ -1252,6 +1251,19 @@ btnTaoIn.addEventListener("click", function () {
   invoiceArea.innerHTML = htmlPreview;
   printOnlyZone.innerHTML = htmlPrint;
   showToast("Tạo mẫu in đơn thành công!", "ok");
+  // Ghi log từ dữ liệu Bảng 3
+  const mangLogBang3 = [];
+  const rowsBang3 = thanBangIn.rows;
+  for (let i = 0; i < rowsBang3.length; i++) {
+    const vandon = rowsBang3[i].cells[1].innerText.trim();
+    const donhang = rowsBang3[i].cells[2].innerText.trim();
+    const sku = rowsBang3[i].cells[3].innerText.trim();
+    const qty = rowsBang3[i].cells[4].innerText.trim();
+    const price = rowsBang3[i].cells[5].innerText.trim();
+    if (!donhang && !sku) continue; // bỏ qua hàng trống
+    mangLogBang3.push({ vandon, orderId: donhang, sku, qty, price });
+  }
+  ghiLogLichSuLenGoogle(mangLogBang3);
 });
 
 btnInDon.addEventListener("click", () => {
@@ -1264,9 +1276,9 @@ btnInDon.addEventListener("click", () => {
 
 window.addEventListener("DOMContentLoaded", () => {
   khoiTaoTieuDe();
-  taoBangTrong(thanBangNhap, 15, 3);
-  taoBangTrong(thanBangKq, 15, 5);
-  taoBangTrong(thanBangIn, 15, 5);
+  taoBangTrong(thanBangNhap, 30, 3);
+  taoBangTrong(thanBangKq, 30, 5);
+  taoBangTrong(thanBangIn, 30, 5);
   taiDanhMucMisaTuGoogle();
   khoiTaoTenNguoiDung();
 
