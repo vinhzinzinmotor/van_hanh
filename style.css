@@ -1,49 +1,722 @@
-/*file style.css*/
-/* Mặc định ẩn khung chứa nút bấm đi và làm nó mờ */
-.khung-nut-hanh-dong {
-  opacity: 0;
-  transition: opacity 0.5s ease; /* Tạo hiệu ứng hiện lên mượt mà */
+/* =========================================================================
+   ZINZINMOTOR - GLOBAL RESET & BASE
+   ========================================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-/* Khi chuột di chuột vào HÀNG (.hang-du-lieu), hiện khung nút lên */
-.hang-du-lieu:hover .khung-nut-hanh-dong {
-  opacity: 0.8;
+body {
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 15px 15px 52px 15px; /* padding-bottom = chiều cao tab bar để nội dung không bị che */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  min-height: 100vh;
 }
-.khung-nut-hanh-dong button {
-  background-color: rgba(212, 18, 18, 0.9); /* Màu nền đỏ */
-  color: white; /* Chữ đổi sang trắng chuẩn luôn */
-  border: none; /* Xóa viền đen của nút */
-  border-radius: 2px; /* Bo góc nhẹ cho nút bấm đẹp hơn */
-  cursor: pointer; /* Biến con chuột thành hình bàn tay khi chỉ vào */
+
+/* =========================================================================
+   TOP BAR: USER + STATUS
+   ========================================================================= */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
-.thanh-cot th {
-  text-align: center; /* Căn giữa chữ trong các ô tiêu đề cột */
-  font-weight: bold; /* In đậm chữ trong các ô tiêu đề cột */
-  white-space: normal; /* cho chữ xuống dòng trong các ô tiêu đề cột */
-  vertical-align: middle; /* Căn giữa chữ theo chiều dọc trong các ô tiêu đề cột */
-  font-family: roboto, sans-serif; /* Đổi font chữ trong các ô tiêu đề cột */
+
+.user-bar {
+  font-size: 13px;
+  color: #3c4043;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-/* Hiệu ứng viền xanh đậm khi ô được chọn giống Google Sheets */
-td[contenteditable="false"].dang-chon {
-  outline: 2px solid #1a73e8 !important; /* Viền màu xanh đặc trưng */
-  background-color: rgba(26, 115, 232, 0.05); /* Nền xanh cực nhẹ */
+.user-bar button {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 12px;
 }
-/* Màu nền xanh nhạt cho các ô nằm trong vùng bôi đen (Excel/Google Sheets) */
+.user-bar button:hover {
+  background: #f1f3f4;
+}
+
+/* =========================================================================
+   TRẠNG THÁI GOOGLE SHEETS
+   ========================================================================= */
+.misa-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #dde4ee;
+}
+.misa-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.misa-status.ok {
+  background: #eafaf1;
+  border-color: #bfe6cf;
+  color: #0f9d58;
+}
+.misa-status.ok .dot {
+  background: #0f9d58;
+}
+.misa-status.loading {
+  background: #fff4e0;
+  border-color: #ffd591;
+  color: #c97a00;
+}
+.misa-status.loading .dot {
+  background: #c97a00;
+  animation: pulse 1s infinite;
+}
+.misa-status.err {
+  background: #fdecec;
+  border-color: #f5b5b5;
+  color: #d83a3a;
+}
+.misa-status.err .dot {
+  background: #d83a3a;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* =========================================================================
+   HỆ THỐNG TAB SHEET (neo dưới cùng giống Google Sheets)
+   ========================================================================= */
+.sheet-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  background: #e8eaed;
+  border-top: 1px solid #c4c7cc;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 8px;
+  gap: 2px;
+  z-index: 1000;
+}
+
+.sheet-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5f6368;
+  background: #d2d5da;
+  border: 1px solid #b8bcc3;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  white-space: nowrap;
+  outline: none;
+  position: relative;
+  top: 1px; /* dính sát border-top của bar */
+}
+
+.sheet-tab:hover {
+  background: #c5c8cd;
+  color: #202124;
+}
+
+.sheet-tab.active {
+  background: #ffffff;
+  color: #1a73e8;
+  border-color: #c4c7cc;
+  font-weight: 700;
+  z-index: 1;
+}
+
+.tab-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* =========================================================================
+   SHEET CONTENT (ẩn/hiện)
+   ========================================================================= */
+.sheet-content {
+  display: none;
+}
+.sheet-content.active {
+  display: block;
+}
+
+/* =========================================================================
+   HEADER & ACTIONS
+   ========================================================================= */
+.header-app {
+  margin-bottom: 10px;
+}
+.header-app h2 {
+  color: #1a73e8;
+  margin: 0 0 5px 0;
+  font-size: 18px;
+}
+.header-app p {
+  color: #5f6368;
+  font-size: 13px;
+  margin: 0;
+}
+
+.actions-bar {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 10px;
+}
+.actions-bar button {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  transition:
+    filter 0.15s,
+    transform 0.1s;
+}
+.actions-bar button:hover {
+  filter: brightness(0.9);
+}
+.actions-bar button:active {
+  transform: scale(0.98);
+}
+
+/* =========================================================================
+   BỐ CỤC HAI BẢNG SONG SONG
+   ========================================================================= */
+.main-container {
+  display: flex;
+  gap: 15px;
+  height: 450px;
+  margin-bottom: 20px;
+}
+.table-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.table-title {
+  background: #f1f3f4;
+  padding: 8px 10px;
+  font-weight: bold;
+  font-size: 12px;
+  border-bottom: 1px solid #ced4da;
+  color: #3c4043;
+}
+.scroll-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* =========================================================================
+   BẢNG DỮ LIỆU
+   ========================================================================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  user-select: none;
+}
+th,
+td {
+  border: 1px solid #ced4da;
+  padding: 5px 7px;
+  min-height: 26px;
+  outline: none;
+  white-space: pre-wrap;
+}
+th {
+  background: #f8f9fa;
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+}
+
+/* Hiệu ứng chọn ô bôi đen */
 td.vung-chon {
-  background-color: rgba(26, 115, 232, 0.12) !important;
+  background-color: #cfe0ff !important;
 }
-/* Chặn trình duyệt bôi đen văn bản khi kéo chuột chọn ô */
-.hang-du-lieu td {
-  -webkit-user-select: none; /* Dành cho Safari */
-  -moz-user-select: none; /* Dành cho Firefox */
-  -ms-user-select: none; /* Dành cho IE/Edge */
-  user-select: none; /* Chuẩn chung cho Chrome, Edge, Opera */
+td.dang-chon {
+  box-shadow: inset 0 0 0 2px #1f6feb !important;
+  background-color: #ffffff !important;
 }
 
-/* Khi ô được mở khóa dblclick để sửa chữ thì cho phép bôi đen text bình thường */
-.hang-du-lieu td[contenteditable="true"] {
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-  user-select: text;
+/* Cột SKU */
+td.i-sku {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #0b4fc4;
+}
+
+/* Cảnh báo dòng lỗi SKU Bảng 3 */
+tr.row-highlight-warn td {
+  background-color: #fce8e6 !important;
+  border-color: #f5c2c2 !important;
+}
+tr.row-highlight-warn td:first-child {
+  background-color: #f9d5d5 !important;
+}
+
+/* =========================================================================
+   NÚT THAO TÁC HÀNG (+/×)
+   ========================================================================= */
+.cell-actions {
+  white-space: nowrap;
+  padding: 2px 4px !important;
+}
+.btn-row-action {
+  border: none;
+  background: none;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin: 0 2px;
+  border-radius: 3px;
+  line-height: 1;
+  display: inline-block;
+}
+.btn-row-add {
+  color: #0f9d58;
+  background-color: #eafaf1;
+}
+.btn-row-add:hover {
+  background-color: #bfe6cf;
+}
+.btn-row-del {
+  color: #d83a3a;
+  background-color: #fdecec;
+}
+.btn-row-del:hover {
+  background-color: #f5b5b5;
+}
+
+/* =========================================================================
+   KHAI VỰC XEM TRƯỚC HÓA ĐƠN (Sheet 3)
+   ========================================================================= */
+.invoice-panel {
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  overflow: hidden;
+  height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+}
+#invoiceArea {
+  flex: 1;
+  overflow-y: auto;
+  background: #f4f6f9;
+  padding: 20px;
+}
+
+.invoice-box {
+  background: #fff;
+  border: 1px solid #111;
+  padding: 15px;
+  margin-bottom: 15px;
+  color: #000;
+}
+.invoice-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #111;
+  padding-bottom: 5px;
+}
+.invoice-head .oid-value {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+table.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.inv-table th,
+table.inv-table td {
+  border: 1px solid #111;
+  padding: 6px;
+  color: #000 !important;
+}
+table.inv-table th {
+  position: static;
+}
+
+/* Co giãn thông minh cột hóa đơn */
+table.inv-table th:nth-child(1),
+table.inv-table td:nth-child(1),
+table.inv-table th:nth-child(3),
+table.inv-table td:nth-child(3),
+table.inv-table th:nth-child(4),
+table.inv-table td:nth-child(4) {
+  width: 1%;
+  white-space: nowrap;
+}
+table.inv-table th:nth-child(5),
+table.inv-table td:nth-child(5) {
+  width: 15%;
+  min-width: 60px;
+}
+table.inv-table th:nth-child(2),
+table.inv-table td:nth-child(2) {
+  width: auto;
+}
+
+table.inv-table th:nth-child(1),
+table.inv-table td.i-sku {
+  font-size: 15px !important;
+  color: #000 !important;
+  font-weight: bold !important;
+}
+
+.circle-qty {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  text-align: center;
+  font-weight: bold;
+}
+.inv-total {
+  text-align: right;
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 14px;
+  color: #111;
+}
+.inv-total .num {
+  font-size: 16px;
+  margin-left: 5px;
+}
+
+/* =========================================================================
+   TOAST NOTIFICATION
+   ========================================================================= */
+.toast-zone {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  min-width: 260px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.toast.ok {
+  background: #0f9d58;
+}
+.toast.warn {
+  background: #e67e22;
+}
+.toast.info {
+  background: #1a73e8;
+}
+.toast.fade {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* =========================================================================
+   MODAL NHẬP TÊN
+   ========================================================================= */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 36px 32px;
+  width: 360px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from {
+    transform: translateY(-16px) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.modal-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+#modal-tieu-de {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a73e8;
+  margin: 0 0 8px;
+}
+#modal-mo-ta {
+  font-size: 13px;
+  color: #5f6368;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 2px solid #ced4da;
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+.modal-input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+.modal-btn-confirm {
+  width: 100%;
+  padding: 13px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.1s;
+}
+.modal-btn-confirm:hover {
+  background: #1557b0;
+}
+.modal-btn-confirm:active {
+  transform: scale(0.98);
+}
+.modal-btn-cancel {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.modal-btn-cancel:hover {
+  color: #444;
+}
+
+/* =========================================================================
+   VÙNG IN ẨN
+   ========================================================================= */
+#print-only-zone {
+  display: none;
+}
+td[tabindex="0"]:focus {
+  outline: none;
+}
+
+/* =========================================================================
+   CHẾ ĐỘ IN ẤN
+   ========================================================================= */
+@media print {
+  @page {
+    size: A6;
+    margin: 0.3mm;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+    font-size: 11px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .modal-overlay,
+  .sheet-tab-bar {
+    display: none !important;
+  }
+  .no-print,
+  .cell-actions,
+  .table-panel th:last-child {
+    display: none !important;
+  }
+
+  #print-only-zone {
+    display: block !important;
+    width: 100%;
+  }
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .invoice-box {
+    border: none !important;
+    padding: 10px !important;
+    margin-bottom: 15px;
+    background: #fff !important;
+    color: #000 !important;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .invoice-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #111;
+    padding-bottom: 5px;
+    color: #000 !important;
+  }
+  .invoice-head .oid-value {
+    font-weight: 800;
+    font-size: 16px;
+  }
+
+  table.inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  table.inv-table th {
+    border: 2px solid #111 !important;
+    padding: 6px !important;
+    background: #e4e4e4 !important;
+    color: #000 !important;
+  }
+  table.inv-table td {
+    border: 1px solid #111 !important;
+    padding: 6px !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  table.inv-table th:nth-child(1),
+  table.inv-table td:nth-child(1),
+  table.inv-table th:nth-child(3),
+  table.inv-table td:nth-child(3),
+  table.inv-table th:nth-child(4),
+  table.inv-table td:nth-child(4) {
+    width: 1%;
+    white-space: nowrap;
+  }
+  table.inv-table th:nth-child(5),
+  table.inv-table td:nth-child(5) {
+    width: 5%;
+    min-width: 30px;
+  }
+  table.inv-table th:nth-child(2),
+  table.inv-table td:nth-child(2) {
+    width: auto;
+    font-size: 11px;
+    word-break: break-word;
+  }
+  table.inv-table th:nth-child(1),
+  table.inv-table td.i-sku {
+    font-size: 15px !important;
+    font-weight: bold !important;
+    font-family: monospace;
+  }
+  table.inv-table th:nth-child(3),
+  table.inv-table td:nth-child(3) {
+    font-size: 15px;
+    font-weight: bold;
+  }
+  table.inv-table th:nth-child(4),
+  table.inv-table td:nth-child(4) {
+    font-size: 20px !important;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .circle-qty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 2px solid #000;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: bold;
+  }
+  .inv-total {
+    text-align: right;
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #000 !important;
+  }
+  .inv-total .num {
+    font-size: 16px;
+    margin-left: 5px;
+  }
 }

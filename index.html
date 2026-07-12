@@ -1,25 +1,203 @@
-<!--file index.html-->
 <!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vận Hành</title>
+    <title>Hệ Thống Vận Hành ZinZinMotor</title>
     <link rel="stylesheet" href="style.css" type="text/css" />
   </head>
   <body>
-    <table
-      border="2"
-      style="border-collapse: collapse; font-family: sans-serif"
-    >
-      <thead>
-        <tr id="thanh-cot">
-          <th style="width: 40px; background: #c7c7c7"></th>
-        </tr>
-      </thead>
-      <tbody id="than-bang"></tbody>
-    </table>
+    <!-- ── VÙNG NỘI DUNG CHÍNH (no-print) ── -->
+    <div class="no-print">
+      <!-- Thanh người dùng + trạng thái kết nối -->
+      <div class="top-bar">
+        <div class="user-bar">
+          👤 Xin chào: <b id="hien-thi-ten">...</b>
+          <button onclick="doiTenNguoiDung()">✏️ Đổi tên</button>
+        </div>
+        <div class="misa-status loading" id="sheet-status">
+          <div class="dot"></div>
+          <span id="status-text">Đang kiểm tra kết nối Google Sheets...</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           SHEET 1: PHÂN TÁCH ĐƠN SHOPEE (Bảng 1 + Bảng 2)
+           ═══════════════════════════════════════════════════════ -->
+      <div id="sheet-phan-tach" class="sheet-content active">
+        <div class="header-app">
+          <h2>BƯỚC 1: HỆ THỐNG XỬ LÝ ĐƠN HÀNG CHUẨN HOÁ SKU</h2>
+          <p>
+            Dán dữ liệu vào Bảng Nhập Liệu bên trái, bấm nút để xem kết quả
+            chuẩn hóa ở Bảng Kết Quả bên phải. Bôi đen vùng kết quả và bấm
+            Ctrl+C để copy. Sử dụng Ctrl+Z để hoàn tác.
+          </p>
+        </div>
+        <div class="actions-bar">
+          <button id="nut-xu-ly">➔ XỬ LÝ ĐƠN HÀNG &amp; CHUẨN HÓA SKU ➔</button>
+        </div>
+        <div class="main-container">
+          <div class="table-panel">
+            <div class="table-title">
+              BẢNG 1: DỮ LIỆU THÔ CHUẨN BỊ XỬ LÝ (DÁN VÀO ĐÂY)
+            </div>
+            <div class="scroll-container">
+              <table border="1">
+                <thead>
+                  <tr id="thanh-cot-nhap">
+                    <th style="width: 40px; background: #c7c7c7">STT</th>
+                  </tr>
+                </thead>
+                <tbody id="than-bang-nhap"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="table-panel">
+            <div class="table-title">
+              BẢNG 2: KẾT QUẢ SAU XỬ LÝ CHUẨN HÓA SKU (BÔI ĐEN COPY TẠI ĐÂY)
+            </div>
+            <div class="scroll-container">
+              <table border="1">
+                <thead>
+                  <tr id="thanh-cot-kq">
+                    <th style="width: 40px; background: #c7c7c7">STT</th>
+                  </tr>
+                </thead>
+                <tbody id="than-bang-kq"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           SHEET 2: TẠO ĐƠN HÀNG (Bảng 3)
+           ═══════════════════════════════════════════════════════ -->
+      <div id="sheet-tao-don" class="sheet-content">
+        <div class="header-app">
+          <h2>BƯỚC 2: IN ĐƠN HÀNG (TỰ ĐỘNG DÒ TÌM VỊ TRÍ KHO THEO MISA)</h2>
+          <p>
+            Dán dữ liệu đã xử lý từ Bảng 2 vào Bảng 3 bên dưới, hệ thống sẽ tự
+            động bóc tách tên sản phẩm và vị trí kho tương ứng.
+          </p>
+        </div>
+        <div class="actions-bar">
+          <button id="nut-tao-in" style="background-color: #e67e22">
+            📦 TẠO MẪU IN ĐƠN
+          </button>
+        </div>
+        <div class="main-container" style="height: 500px">
+          <div class="table-panel">
+            <div class="table-title">
+              BẢNG 3: DỮ LIỆU CHUẨN BỊ IN (DÁN VÀO ĐÂY)
+            </div>
+            <div class="scroll-container">
+              <table border="1">
+                <thead>
+                  <tr id="thanh-cot-in">
+                    <th style="width: 40px; background: #c7c7c7">STT</th>
+                  </tr>
+                </thead>
+                <tbody id="than-bang-in"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           SHEET 3: XEM ĐƠN HÀNG (Khu vực xem trước + In)
+           ═══════════════════════════════════════════════════════ -->
+      <div id="sheet-xem-don" class="sheet-content">
+        <div class="header-app">
+          <h2>XEM TRƯỚC &amp; IN ĐƠN HÀNG</h2>
+          <p>Xem trước bản in và nhấn nút In Đơn Hàng để in.</p>
+        </div>
+        <div class="actions-bar">
+          <button id="nut-in-don" style="background-color: #0f9d58">
+            🖨 IN ĐƠN HÀNG
+          </button>
+        </div>
+        <div class="invoice-panel">
+          <div class="table-title" style="border-radius: 4px 4px 0 0">
+            KHU VỰC XEM TRƯỚC (BẢN IN TÊN + VỊ TRÍ)
+          </div>
+          <div id="invoiceArea">
+            <div style="text-align: center; color: #777; padding-top: 40px">
+              Chưa có dữ liệu in... Hãy sang tab "Tạo Đơn Hàng" và bấm nút TẠO
+              MẪU IN ĐƠN trước.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /no-print -->
+
+    <!-- Vùng in ẩn -->
+    <div id="print-only-zone"></div>
+
+    <!-- ── THANH TAB SHEET (neo dưới cùng) ── -->
+    <div class="sheet-tab-bar" id="sheet-tab-bar">
+      <button class="sheet-tab active" data-target="sheet-phan-tach">
+        <span class="tab-icon">📋</span> Phân Tách Đơn Shopee
+      </button>
+      <button class="sheet-tab" data-target="sheet-tao-don">
+        <span class="tab-icon">📦</span> Tạo Đơn Hàng
+      </button>
+      <button class="sheet-tab" data-target="sheet-xem-don">
+        <span class="tab-icon">🖨</span> Xem Đơn Hàng
+      </button>
+    </div>
+
+    <!-- ── MODAL NHẬP TÊN NHÂN VIÊN ── -->
+    <div id="modal-ten" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon">👤</div>
+        <h3 id="modal-tieu-de">Xin chào!</h3>
+        <p id="modal-mo-ta">Bạn tên gì?</p>
+        <input
+          type="text"
+          id="modal-input-ten"
+          class="modal-input"
+          placeholder="Nhập tên của bạn..."
+          maxlength="50"
+        />
+        <button id="modal-btn-xac-nhan" class="modal-btn-confirm">
+          BẮT ĐẦU LÀM VIỆC ➔
+        </button>
+        <button id="modal-btn-huy" class="modal-btn-cancel">Hủy bỏ</button>
+      </div>
+    </div>
+
+    <div id="toast-zone" class="toast-zone"></div>
 
     <script src="script.js"></script>
+
+    <!-- Script điều khiển tab sheet -->
+    <script>
+      (function () {
+        const tabs = document.querySelectorAll(".sheet-tab");
+        const contents = document.querySelectorAll(".sheet-content");
+
+        tabs.forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            const target = tab.getAttribute("data-target");
+
+            // Bỏ active tất cả
+            tabs.forEach(function (t) {
+              t.classList.remove("active");
+            });
+            contents.forEach(function (c) {
+              c.classList.remove("active");
+            });
+
+            // Bật active tab và content được chọn
+            tab.classList.add("active");
+            const el = document.getElementById(target);
+            if (el) el.classList.add("active");
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
