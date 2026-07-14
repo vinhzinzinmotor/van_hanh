@@ -83,11 +83,12 @@ var C2_CONFIG = {
   COL_SKU: 0,
   COL_NAME: 1,
   COL_LOC: 6,
+  COL_HANGDEVO: 13,
 };
 
 var LOG_CONFIG = {
   APPS_SCRIPT_URL:
-    "https://script.google.com/macros/s/AKfycbwylHEFdL6J9ZBXLwU2k4dxezq5t358AxMo4BAN49N9yuV1DdwzQlzHj9Iy9Hf9TMX5eA/exec",
+    "https://script.google.com/macros/s/AKfycbyK4wU2pbrM2Tqet7g70GRRqTCyJ_1U2aZFK4zQqjLZh6rSTJ8cg-fcRs7W_DnUmXpg_A/exec",
   SPREADSHEET_ID: "1Ro4FLShWGRQHilJ7m4RSmsfTp65QXpvJNfAjVjCLvrc",
   SHEET_NAME: "LOG",
 };
@@ -131,7 +132,7 @@ function showToast(msg, type = "info") {
   setTimeout(() => {
     div.classList.add("fade");
     setTimeout(() => div.remove(), 400);
-  }, 3000);
+  }, 500);
 }
 
 /* =========================================================================
@@ -245,7 +246,7 @@ function taiDanhMucMisaTuGoogle() {
     return;
   }
 
-  var rangeStr = encodeURIComponent(C2_CONFIG.SHEET_NAME + "!A:G");
+  var rangeStr = encodeURIComponent(C2_CONFIG.SHEET_NAME + "!A:N");
   var url =
     "https://sheets.googleapis.com/v4/spreadsheets/" +
     C2_CONFIG.SPREADSHEET_ID +
@@ -284,6 +285,9 @@ function taiDanhMucMisaTuGoogle() {
           loc: row[C2_CONFIG.COL_LOC]
             ? row[C2_CONFIG.COL_LOC].toString().trim()
             : "Chưa xếp vị trí",
+          hangDeVo: row[C2_CONFIG.COL_HANGDEVO]
+            ? row[C2_CONFIG.COL_HANGDEVO].toString().trim() === "HANG DE VO"
+            : false, // ← THÊM DÒNG NÀY
         };
         count++;
       }
@@ -303,13 +307,14 @@ function ghiLogLichSuLenGoogle(rowsData) {
   if (!LOG_CONFIG.APPS_SCRIPT_URL || rowsData.length === 0) return;
   var rows = rowsData.map(function (r) {
     return [
+      r.phienId,
       r.vandon,
       r.orderId,
       r.sku,
       r.qty,
       r.price,
       tenNguoiDung,
-      new Date().toLocaleString("vi-VN"),
+      new Date().toISOString(),
     ];
   });
   fetch(LOG_CONFIG.APPS_SCRIPT_URL, {
@@ -649,7 +654,7 @@ function themMotHangVaoBang(tbody, rowIndex, tongSoCot) {
   });
 
   const btnDel = document.createElement("button");
-  btnDel.innerText = "-";
+  btnDel.innerText = "×";
   btnDel.className = "btn-row-action btn-row-del";
   btnDel.title = "Xóa hàng này";
   btnDel.addEventListener("click", () => {
@@ -846,6 +851,12 @@ document.addEventListener("keydown", function (e) {
     const cacOChon = bangDangThaoTac.querySelectorAll("td.vung-chon");
     if (cacOChon.length === 0) return;
 
+    // Nếu đang sửa trong ô → để trình duyệt tự xử lý copy
+    const oDangSua = bangDangThaoTac.querySelector(
+      "td[contenteditable='true']",
+    );
+    if (oDangSua) return; // ← THÊM DÒNG NÀY
+
     e.preventDefault();
     let minH = Infinity,
       maxH = -Infinity,
@@ -970,10 +981,14 @@ btnXuLy.addEventListener("click", function () {
     const blocks = splitProducts(inf);
     blocks.forEach((b) => {
       if (!b) return;
-
+      /* =========================================================================*/
+      /* THAY ĐỔI NẾU DỮ LIỆU TRÊN SHOPEE THAY ĐỔI PHÍA DƯỚI
+      LƯU Ý: NẾU CÓ DẤU CHẤM THÌ PHẢI CÓ // ĐỂ ĐẢM BẢO ĐÚNG
+      VÍ DỤ "SKU Reference No\\." HOẶC "Quantity\\." */
       const skuRaw = grab(b, "SKU Reference No\\.");
       const qtyRaw = grab(b, "Quantity");
       const priceRaw = grab(b, "Price");
+      /* =========================================================================*/
 
       const priceNorm = normPrice(priceRaw);
       const qtyNum =
@@ -1181,7 +1196,7 @@ btnTaoIn.addEventListener("click", function () {
     if (!donhang && !sku) continue;
     coDuLieu = true;
 
-    let tenSanPham = "Sản phẩm ZinZin",
+    let tenSanPham = "Sản phẩm zzm",
       viTriKho = "Chưa xếp vị trí";
     if (MISA_DIRECTORY[sku]) {
       tenSanPham = MISA_DIRECTORY[sku].name || tenSanPham;
@@ -1195,6 +1210,7 @@ btnTaoIn.addEventListener("click", function () {
       loc: viTriKho,
       qty: qty,
       price: price,
+      hangDeVo: MISA_DIRECTORY[sku] ? MISA_DIRECTORY[sku].hangDeVo : false, // Thêm cột hangDeVo từ MISA_DIRECTORY nếu có, mặc định false nếu không có
     });
   }
 
@@ -1223,6 +1239,15 @@ btnTaoIn.addEventListener("click", function () {
     });
     // ── KẾT THÚC SẮP XẾP ──
 
+    // ── KIỂM TRA HÀNG DỄ VỠ ──
+    var coHangDeVo = don.items.some(function (it) {
+      return it.hangDeVo === true;
+    });
+    var canhBaoDeVo = coHangDeVo
+      ? `<div class="canh-bao-de-vo">⚠️ Lưu ý: Có Hàng Dễ Vỡ</div>`
+      : "";
+    // ── KẾT THÚC KIỂM TRA ──
+
     // Cập nhật tiêu đề và bổ sung cột Ghi Chú
     let template = `
       <div class="invoice-box">
@@ -1242,6 +1267,7 @@ btnTaoIn.addEventListener("click", function () {
     });
 
     template += `</tbody></table>
+        ${canhBaoDeVo}
         <div class="inv-total">Total Price:<span class="num">${total.toLocaleString("vi-VN")}</span></div>
       </div>`;
 
@@ -1250,20 +1276,26 @@ btnTaoIn.addEventListener("click", function () {
   });
   invoiceArea.innerHTML = htmlPreview;
   printOnlyZone.innerHTML = htmlPrint;
+  // ── GHI LOG TỪ BẢNG 3 ──
+  var phienId =
+    Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  var logBang3 = [];
+  Object.keys(donHangGrouped).forEach(function (idDon) {
+    var don = donHangGrouped[idDon];
+    don.items.forEach(function (it) {
+      logBang3.push({
+        phienId: phienId,
+        vandon: don.vandon,
+        orderId: idDon,
+        sku: it.sku,
+        qty: it.qty,
+        price: it.price,
+      });
+    });
+  });
+  ghiLogLichSuLenGoogle(logBang3);
+  // ── KẾT THÚC GHI LOG ──
   showToast("Tạo mẫu in đơn thành công!", "ok");
-  // Ghi log từ dữ liệu Bảng 3
-  const mangLogBang3 = [];
-  const rowsBang3 = thanBangIn.rows;
-  for (let i = 0; i < rowsBang3.length; i++) {
-    const vandon = rowsBang3[i].cells[1].innerText.trim();
-    const donhang = rowsBang3[i].cells[2].innerText.trim();
-    const sku = rowsBang3[i].cells[3].innerText.trim();
-    const qty = rowsBang3[i].cells[4].innerText.trim();
-    const price = rowsBang3[i].cells[5].innerText.trim();
-    if (!donhang && !sku) continue; // bỏ qua hàng trống
-    mangLogBang3.push({ vandon, orderId: donhang, sku, qty, price });
-  }
-  ghiLogLichSuLenGoogle(mangLogBang3);
 });
 
 btnInDon.addEventListener("click", () => {
@@ -1312,3 +1344,30 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
 });
+// =========================================================================
+// HÀM XỬ LÝ XÓA SẠCH BẢNG (TÍCH HỢP HỆ THỐNG HOÀN TÁC UNDO ENGINE)
+// =========================================================================
+function xoaBang(loai) {
+  // 1. Lưu lại trạng thái trước khi xóa để người dùng có thể Ctrl+Z hoàn tác lại
+  saveState();
+
+  // 2. Tiến hành dọn sạch và tạo lại khung bảng trống theo đúng số cột ban đầu
+  if (loai === "nhap") {
+    taoBangTrong(thanBangNhap, 15, 3);
+    showToast("Đã xóa sạch dữ liệu Bảng 1!", "info");
+  } else if (loai === "kq") {
+    taoBangTrong(thanBangKq, 15, 5);
+    showToast("Đã xóa sạch dữ liệu Bảng 2!", "info");
+  } else if (loai === "in") {
+    taoBangTrong(thanBangIn, 15, 5);
+
+    // Đồng thời xóa sạch khu vực xem trước in đơn để tránh lệch dữ liệu hiển thị
+    if (invoiceArea) {
+      invoiceArea.innerHTML = `<div style="text-align: center; color: #777; padding-top: 40px">Chưa có dữ liệu in...</div>`;
+    }
+    if (printOnlyZone) {
+      printOnlyZone.innerHTML = "";
+    }
+    showToast("Đã xóa sạch Bảng 3 và khu xem trước!", "info");
+  }
+}
