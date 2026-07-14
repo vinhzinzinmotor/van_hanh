@@ -644,9 +644,10 @@ td[tabindex="0"]:focus {
   @page {
     size: A6;
     margin: 5mm;
+    scale: 80;
   }
   body {
-    margin: 5mm;
+    margin: 0;
     padding: 0;
     background: #fff;
     color: #000;
