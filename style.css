@@ -643,7 +643,7 @@ td[tabindex="0"]:focus {
 @media print {
   @page {
     size: A6;
-    margin: 0.9mm;
+    margin: 5mm;
   }
   body {
     margin: 0;
