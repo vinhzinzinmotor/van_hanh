@@ -321,6 +321,7 @@ function ghiLogLichSuLenGoogle(rowsData) {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
+      token: "ZZM_INTERNAL_2024", // thêm dòng này
       spreadsheet_id: LOG_CONFIG.SPREADSHEET_ID,
       sheet_name: LOG_CONFIG.SHEET_NAME,
       rows: rows,
