@@ -1618,6 +1618,7 @@ window.addEventListener("DOMContentLoaded", () => {
   taoBangTrong(thanBangIn, 30, 5);
   taiDanhMucMisaTuGoogle();
   khoiTaoTenNguoiDung();
+  khoiTaoModalPhanTachSku(); // THÊM DÒNG NÀY
 
   // ── SỰ KIỆN CHO MODAL NHẬP TÊN ──
   document
@@ -1675,4 +1676,132 @@ function xoaBang(loai) {
     }
     showToast("Đã xóa sạch Bảng 3 và khu xem trước!", "info");
   }
+}
+/* =========================================================================
+   TÍNH NĂNG PHÂN TÁCH SKU COMBO
+   ========================================================================= */
+function phanTachSkuCombo(chuoi) {
+  // Bước 1: Trim và tách theo dấu +
+  var cacPhan = chuoi.trim().split("+");
+  var ketQua = [];
+
+  cacPhan.forEach(function (phan) {
+    phan = phan.trim();
+    if (!phan) return; // Bỏ qua phần rỗng
+
+    // Bước 2: Kiểm tra có dạng SKUxSố không
+    // x phải là chữ thường, số phải >= 1
+    var match = phan.match(/^(.+?)x([1-9]\d*)$/);
+
+    if (match) {
+      ketQua.push({ sku: match[1].trim(), sl: parseInt(match[2], 10) });
+    } else {
+      ketQua.push({ sku: phan, sl: 1 });
+    }
+  });
+
+  return ketQua;
+}
+
+function khoiTaoModalPhanTachSku() {
+  var modal = document.getElementById("modal-phan-tach-sku");
+  var nutMo = document.getElementById("nut-phan-tach-sku");
+  var nutDong = document.getElementById("pts-btn-dong");
+  var nutPhanTach = document.getElementById("pts-btn-phan-tach");
+  var nutCopy = document.getElementById("pts-btn-copy");
+  var input = document.getElementById("pts-input");
+  var khuKetQua = document.getElementById("pts-ket-qua");
+  var thanBang = document.getElementById("pts-than-bang");
+
+  if (!nutMo) return; // Không có nút thì thôi
+
+  // Mở modal
+  nutMo.addEventListener("click", function () {
+    modal.classList.add("active");
+    input.value = "";
+    khuKetQua.style.display = "none";
+    thanBang.innerHTML = "";
+    setTimeout(function () {
+      input.focus();
+    }, 50);
+  });
+
+  // Đóng modal
+  nutDong.addEventListener("click", function () {
+    modal.classList.remove("active");
+  });
+
+  // Bấm ra ngoài modal thì đóng
+  modal.addEventListener("click", function (e) {
+    if (e.target === modal) modal.classList.remove("active");
+  });
+
+  // Bấm Escape thì đóng
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && modal.classList.contains("active")) {
+      modal.classList.remove("active");
+    }
+  });
+
+  // Bấm PHÂN TÁCH
+  nutPhanTach.addEventListener("click", function () {
+    var chuoi = input.value.trim();
+    if (!chuoi) {
+      input.focus();
+      showToast("Vui lòng dán chuỗi SKU vào ô nhập!", "warn");
+      return;
+    }
+
+    var ketQua = phanTachSkuCombo(chuoi);
+    if (ketQua.length === 0) {
+      showToast("Không tách được SKU nào!", "warn");
+      return;
+    }
+
+    // Hiển thị kết quả vào bảng
+    thanBang.innerHTML = "";
+    ketQua.forEach(function (item, idx) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" +
+        (idx + 1) +
+        "</td>" +
+        "<td>" +
+        item.sku +
+        "</td>" +
+        "<td>" +
+        item.sl +
+        "</td>";
+      thanBang.appendChild(tr);
+    });
+
+    khuKetQua.style.display = "block";
+    showToast("Đã tách được " + ketQua.length + " SKU!", "ok");
+  });
+
+  // Bấm COPY TSV — copy dạng tab để paste thẳng vào bảng
+  nutCopy.addEventListener("click", function () {
+    var rows = Array.from(thanBang.querySelectorAll("tr"));
+    if (rows.length === 0) return;
+
+    var tsv = rows
+      .map(function (tr) {
+        var cells = tr.querySelectorAll("td");
+        // Chỉ lấy cột SKU và SL (bỏ STT)
+        return cells[1].innerText + "\t" + cells[2].innerText;
+      })
+      .join("\n");
+
+    navigator.clipboard
+      .writeText(tsv)
+      .then(function () {
+        showToast(
+          "Đã copy " + rows.length + " dòng! Paste thẳng vào bảng.",
+          "ok",
+        );
+      })
+      .catch(function () {
+        showToast("Trình duyệt chặn copy. Thử bôi đen và Ctrl+C!", "warn");
+      });
+  });
 }

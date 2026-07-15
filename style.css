@@ -828,3 +828,111 @@ td[tabindex="0"]:focus {
   background: #1a73e8;
   opacity: 0.5;
 }
+/* =========================================================================
+   MODAL PHÂN TÁCH SKU
+   ========================================================================= */
+.modal-phan-tach {
+  width: 480px;
+  max-width: 95vw;
+  text-align: left;
+  padding: 28px 28px 24px;
+}
+
+#pts-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: monospace;
+  border: 2px solid #ced4da;
+  border-radius: 6px;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+#pts-input:focus {
+  border-color: #8e44ad;
+  box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.12);
+}
+
+.pts-btn-action {
+  width: 100%;
+  padding: 10px;
+  background: #8e44ad;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: filter 0.15s;
+}
+.pts-btn-action:hover {
+  filter: brightness(0.9);
+}
+
+.pts-ket-qua-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #3c4043;
+}
+
+.pts-btn-copy {
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.pts-btn-copy:hover {
+  filter: brightness(0.9);
+}
+
+#pts-bang-ket-qua {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 10px;
+  user-select: text;
+}
+#pts-bang-ket-qua th {
+  background: #f1f3f4;
+  border: 1px solid #ced4da;
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: 700;
+  position: static;
+}
+#pts-bang-ket-qua td {
+  border: 1px solid #ced4da;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+#pts-bang-ket-qua tr:hover td {
+  background: rgba(142, 68, 173, 0.05);
+}
+#pts-bang-ket-qua td:nth-child(1) {
+  text-align: center;
+  color: #888;
+  width: 40px;
+}
+#pts-bang-ket-qua td:nth-child(2) {
+  font-family: monospace;
+  font-weight: bold;
+  color: #0b4fc4;
+}
+#pts-bang-ket-qua td:nth-child(3) {
+  text-align: center;
+  font-weight: bold;
+  width: 50px;
+}
