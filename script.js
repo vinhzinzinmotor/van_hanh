@@ -738,6 +738,10 @@ function suKienNhanChuot(e, r, c, tbody) {
 
 function suKienReChuot(e, r, c) {
   if (!dangKeoChuot || !bangDangThaoTac) return;
+
+  // THÊM DÒNG NÀY: Nếu đang có ô ở chế độ sửa (dblclick) thì bỏ qua hoàn toàn
+  if (bangDangThaoTac.querySelector("td[contenteditable='true']")) return;
+
   if (window.getSelection) {
     window.getSelection().removeAllRanges();
   }
@@ -819,6 +823,8 @@ function dungAutoScroll() {
 
 document.addEventListener("mousedown", (e) => {
   if (bangDangThaoTac && !bangDangThaoTac.contains(e.target)) {
+    // THÊM DÒNG NÀY: Nếu đang có ô ở chế độ sửa (dblclick) thì bỏ qua
+    if (bangDangThaoTac.querySelector("td[contenteditable='true']")) return;
     giaiPhongVungChon(bangDangThaoTac);
     bangDangThaoTac = null;
     hangBatDau = -1;
@@ -1249,10 +1255,30 @@ btnTaoIn.addEventListener("click", function () {
       : "";
     // ── KẾT THÚC KIỂM TRA ──
 
+    // ── TẠO NỘI DUNG COPY TIN NHẮN ──
+    var copyText = "📦 ĐƠN: " + idDon + "\n";
+    copyText += "🚚 VĐ: " + don.vandon + "\n";
+    copyText += "━━━━━━━━━━━━━━━━━━━━\n";
+    don.items.forEach(function (it) {
+      var loc =
+        it.loc && it.loc !== "Chưa xếp vị trí" ? "[" + it.loc + "] " : "";
+      copyText += loc + it.sku + " x" + it.qty + "\n";
+    });
+    copyText += "━━━━━━━━━━━━━━━━━━━━\n";
+    copyText += "💰 Tổng: " + total.toLocaleString("vi-VN") + " đ";
+    if (coHangDeVo) copyText += "\n⚠️ Có Hàng Dễ Vỡ";
+    // ── KẾT THÚC TẠO NỘI DUNG ──
+
     // Cập nhật tiêu đề và bổ sung cột Ghi Chú
     let template = `
-      <div class="invoice-box">
-        <div class="invoice-head"><div><b>Mã Vận Đơn:</b> ${don.vandon}</div><div class="oid-value">ĐƠN HÀNG: ${idDon}</div></div>
+      <div class="invoice-box" data-copy-text="${copyText.replace(/"/g, "&quot;")}">
+        <div class="invoice-head">
+          <div><b>Mã Vận Đơn:</b> ${don.vandon}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="oid-value">ĐƠN HÀNG: ${idDon}</span>
+            <button class="btn-copy-don" onclick="copyDonHang(this)">📋 Copy</button>
+          </div>
+        </div>
         <table class="inv-table">
           <thead><tr><th>Mã SKU</th><th>Tên Sản Phẩm</th><th>Vị Trí Kho</th><th>SL</th><th>Ghi Chú</th></tr></thead>
           <tbody>`;
@@ -1307,8 +1333,161 @@ btnInDon.addEventListener("click", () => {
   window.print();
 });
 
+// ── KÉO RỘNG CỘT & LƯU LOCALSTORAGE ──
+function khoiTaoKeoRongCot() {
+  var cacBang = [
+    { tr: thanhCotNhap, key: "zzm_colwidth_nhap" },
+    { tr: thanhCotKq, key: "zzm_colwidth_kq" },
+    { tr: thanhCotIn, key: "zzm_colwidth_in" },
+  ];
+
+  cacBang.forEach(function (b) {
+    if (!b.tr) return;
+    var table = b.tr.closest("table");
+    if (!table) return;
+
+    // Bắt buộc fixed layout — cột nào rộng bao nhiêu giữ nguyên bấy nhiêu
+    table.style.tableLayout = "fixed";
+
+    var tatCaTh = Array.from(b.tr.querySelectorAll("th"));
+    var thCoTheKeo = tatCaTh.slice(1, tatCaTh.length - 1);
+
+    // Cố định chiều rộng hiện tại bằng px cho tất cả cột có thể kéo
+    var saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(b.key));
+    } catch (e) {}
+
+    if (saved && saved.length === thCoTheKeo.length) {
+      // Có dữ liệu đã lưu → dùng luôn
+      thCoTheKeo.forEach(function (th, i) {
+        th.style.width = saved[i] + "px";
+        th.style.minWidth = saved[i] + "px";
+        th.style.maxWidth = saved[i] + "px";
+        th.style.overflow = "hidden";
+      });
+    } else {
+      // Chưa có → đóng băng chiều rộng hiện tại thành px
+      thCoTheKeo.forEach(function (th) {
+        var w = th.offsetWidth || 120;
+        th.style.width = w + "px";
+        th.style.minWidth = w + "px";
+        th.style.maxWidth = w + "px";
+        th.style.overflow = "hidden";
+      });
+    }
+
+    // Cập nhật tổng chiều rộng bảng = tổng các cột
+    // Sau — bảng chỉ rộng đúng bằng tổng các cột, scroll ngang nếu nhỏ hơn container
+    function capNhatChieuRongBang() {
+      var tong = tatCaTh.reduce(function (s, th) {
+        return s + (th.offsetWidth || 0);
+      }, 0);
+      table.style.width = tong + "px"; // ← bỏ Math.max, chỉ dùng tổng thực tế
+    }
+    capNhatChieuRongBang();
+
+    // Gắn tay kéo vào từng cột
+    thCoTheKeo.forEach(function (th) {
+      th.style.position = "relative";
+      var existing = th.querySelector(".col-resizer");
+      if (existing) existing.remove();
+
+      var resizer = document.createElement("div");
+      resizer.className = "col-resizer";
+      th.appendChild(resizer);
+
+      resizer.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        var startX = e.clientX;
+        var startWidth = th.offsetWidth;
+        resizer.classList.add("dang-keo");
+
+        function onMove(e) {
+          var w = Math.max(40, startWidth + e.clientX - startX);
+          th.style.width = w + "px";
+          th.style.minWidth = w + "px";
+          th.style.maxWidth = w + "px";
+          capNhatChieuRongBang();
+        }
+
+        function onUp() {
+          resizer.classList.remove("dang-keo");
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          var widths = thCoTheKeo.map(function (t) {
+            return t.offsetWidth;
+          });
+          localStorage.setItem(b.key, JSON.stringify(widths));
+        }
+
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+    });
+  });
+}
+
+// ── HÀM COPY ĐƠN HÀNG DẠNG ẢNH (TỐI ƯU ĐIỆN THOẠI) ──
+function copyDonHang(btn) {
+  var box = btn.closest(".invoice-box");
+  if (!box) return;
+
+  btn.innerText = "⏳ Đang tạo...";
+  btn.disabled = true;
+
+  // Tạo bản sao vô hình với chiều rộng 400px (phù hợp điện thoại)
+  var clone = box.cloneNode(true);
+  clone.style.position = "fixed";
+  clone.style.top = "-9999px";
+  clone.style.left = "-9999px";
+  clone.style.width = "420px";
+  clone.style.maxWidth = "420px";
+
+  // Ẩn nút Copy trong bản sao để không xuất hiện trong ảnh
+  var cloneBtn = clone.querySelector(".btn-copy-don");
+  if (cloneBtn) cloneBtn.style.display = "none";
+
+  document.body.appendChild(clone);
+
+  html2canvas(clone, {
+    scale: 2,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+  })
+    .then(function (canvas) {
+      document.body.removeChild(clone);
+
+      canvas.toBlob(function (blob) {
+        navigator.clipboard
+          .write([new ClipboardItem({ "image/png": blob })])
+          .then(function () {
+            btn.innerText = "✅ Đã copy ảnh";
+            btn.style.background = "#0f9d58";
+            btn.disabled = false;
+            setTimeout(function () {
+              btn.innerText = "📋 Copy ảnh";
+              btn.style.background = "";
+            }, 2500);
+          })
+          .catch(function () {
+            btn.innerText = "📋 Copy ảnh";
+            btn.disabled = false;
+            showToast("Trình duyệt chưa hỗ trợ copy ảnh. Thử Chrome!", "warn");
+          });
+      }, "image/png");
+    })
+    .catch(function () {
+      if (document.body.contains(clone)) document.body.removeChild(clone);
+      btn.innerText = "📋 Copy ảnh";
+      btn.disabled = false;
+      showToast("Không thể tạo ảnh đơn hàng!", "warn");
+    });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   khoiTaoTieuDe();
+  setTimeout(khoiTaoKeoRongCot, 50); // ← đợi 50ms để bảng render xong mới đo
   taoBangTrong(thanBangNhap, 30, 3);
   taoBangTrong(thanBangKq, 30, 5);
   taoBangTrong(thanBangIn, 30, 5);

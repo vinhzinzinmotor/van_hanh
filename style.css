@@ -644,7 +644,7 @@ td[tabindex="0"]:focus {
   @page {
     size: A6;
     margin: 5mm;
-    scale: 80;
+    scale: 80; /*   */
   }
   body {
     margin: 0;
@@ -793,3 +793,38 @@ td[tabindex="0"]:focus {
   background-color: #fff !important;
 }
 /* ------------------------------------------------*/
+/* ── NÚT COPY ĐƠN HÀNG ── */
+.btn-copy-don {
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-copy-don:hover {
+  background: #1557b0;
+}
+@media print {
+  .btn-copy-don {
+    display: none !important;
+  }
+}
+/* ── KÉO RỘNG CỘT ── */
+.col-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+.col-resizer:hover,
+.col-resizer.dang-keo {
+  background: #1a73e8;
+  opacity: 0.5;
+}
