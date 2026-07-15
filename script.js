@@ -117,6 +117,9 @@ let dangKeoChuot = false;
 let hangBatDau = -1;
 let cotBatDauVung = -1;
 let bangDangThaoTac = null;
+// THÊM 2 DÒNG NÀY
+let hangKetThuc = -1;
+let cotKetThuc = -1;
 
 // Khởi tạo Undo Stack quản lý lịch sử thao tác
 let undoStack = [];
@@ -734,6 +737,8 @@ function suKienNhanChuot(e, r, c, tbody) {
     targetTd.focus();
     targetTd.classList.add("vung-chon", "dang-chon");
   }
+  hangKetThuc = r;
+  cotKetThuc = c;
 }
 
 function suKienReChuot(e, r, c) {
@@ -760,6 +765,8 @@ function suKienReChuot(e, r, c) {
       }
     }
   }
+  hangKetThuc = r; // THÊM DÒNG NÀY
+  cotKetThuc = c; // THÊM DÒNG NÀY
 }
 
 // Nâng cấp: CHỨC NĂNG TỰ ĐỘNG LĂN CHUỘT (AUTO-SCROLL) MƯỢT MÀ BẰNG SET-INTERVAL
@@ -847,6 +854,94 @@ function giaiPhongVungChon(tbody) {
 }
 
 document.addEventListener("keydown", function (e) {
+  // CTRL+SHIFT+ARROW: Mở rộng vùng chọn đến cuối dữ liệu
+  if (e.ctrlKey && e.shiftKey && bangDangThaoTac) {
+    const cacPhimMuiTen = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+    if (cacPhimMuiTen.includes(e.key)) {
+      e.preventDefault();
+
+      const tbody = bangDangThaoTac;
+      const tongSoHang = tbody.rows.length;
+      const tongSoCot = Array.from(tbody.rows[0].cells).length - 2;
+
+      // Hàm lấy nội dung ô tại hàng r, cột c
+      function layNoiDung(r, c) {
+        if (!tbody.rows[r]) return "";
+        const td = tbody.rows[r].cells[c + 1];
+        return td ? td.innerText.trim() : "";
+      }
+
+      let newHang = hangKetThuc;
+      let newCot = cotKetThuc;
+
+      if (e.key === "ArrowDown") {
+        if (layNoiDung(hangKetThuc, cotKetThuc) !== "") {
+          let i = hangKetThuc + 1;
+          while (i < tongSoHang && layNoiDung(i, cotKetThuc) !== "") i++;
+          newHang = i - 1;
+        } else {
+          let i = hangKetThuc + 1;
+          while (i < tongSoHang && layNoiDung(i, cotKetThuc) === "") i++;
+          newHang = Math.min(i, tongSoHang - 1);
+        }
+      } else if (e.key === "ArrowUp") {
+        if (layNoiDung(hangKetThuc, cotKetThuc) !== "") {
+          let i = hangKetThuc - 1;
+          while (i >= 0 && layNoiDung(i, cotKetThuc) !== "") i--;
+          newHang = i + 1;
+        } else {
+          let i = hangKetThuc - 1;
+          while (i >= 0 && layNoiDung(i, cotKetThuc) === "") i--;
+          newHang = Math.max(i, 0);
+        }
+      } else if (e.key === "ArrowRight") {
+        if (layNoiDung(hangKetThuc, cotKetThuc) !== "") {
+          let j = cotKetThuc + 1;
+          while (j < tongSoCot && layNoiDung(hangKetThuc, j) !== "") j++;
+          newCot = j - 1;
+        } else {
+          let j = cotKetThuc + 1;
+          while (j < tongSoCot && layNoiDung(hangKetThuc, j) === "") j++;
+          newCot = Math.min(j, tongSoCot - 1);
+        }
+      } else if (e.key === "ArrowLeft") {
+        if (layNoiDung(hangKetThuc, cotKetThuc) !== "") {
+          let j = cotKetThuc - 1;
+          while (j >= 0 && layNoiDung(hangKetThuc, j) !== "") j--;
+          newCot = j + 1;
+        } else {
+          let j = cotKetThuc - 1;
+          while (j >= 0 && layNoiDung(hangKetThuc, j) === "") j--;
+          newCot = Math.max(j, 0);
+        }
+      }
+
+      // Cập nhật điểm di động
+      hangKetThuc = newHang;
+      cotKetThuc = newCot;
+
+      // Vẽ lại vùng bôi đen
+      giaiPhongVungChon(tbody);
+      const minH = Math.min(hangBatDau, hangKetThuc);
+      const maxH = Math.max(hangBatDau, hangKetThuc);
+      const minC = Math.min(cotBatDauVung, cotKetThuc);
+      const maxC = Math.max(cotBatDauVung, cotKetThuc);
+      for (let h = minH; h <= maxH; h++) {
+        for (let k = minC; k <= maxC; k++) {
+          if (tbody.rows[h] && tbody.rows[h].cells[k + 1]) {
+            tbody.rows[h].cells[k + 1].classList.add("vung-chon");
+            if (h === hangBatDau && k === cotBatDauVung) {
+              tbody.rows[h].cells[k + 1].classList.add("dang-chon");
+            }
+          }
+        }
+      }
+      // THÊM DÒNG NÀY: Cuộn đến điểm di động mới
+      cuonDenO(tbody, hangKetThuc, cotKetThuc);
+      return;
+    }
+  }
+
   if (e.ctrlKey && e.key.toLowerCase() === "z") {
     e.preventDefault();
     undo();
@@ -1484,6 +1579,36 @@ function copyDonHang(btn) {
       showToast("Không thể tạo ảnh đơn hàng!", "warn");
     });
 }
+// CUỘN CONTAINER ĐỂ Ô ĐÍCH LUÔN NẰM TRONG TẦM NHÌN
+function cuonDenO(tbody, hang, cot) {
+  if (!tbody || !tbody.rows[hang]) return;
+  const td = tbody.rows[hang].cells[cot + 1];
+  if (!td) return;
+
+  const container = tbody.closest(".scroll-container");
+  if (!container) return;
+
+  const containerRect = container.getBoundingClientRect();
+  const tdRect = td.getBoundingClientRect();
+
+  // Cuộn dọc
+  if (tdRect.bottom > containerRect.bottom) {
+    // Ô nằm dưới vùng nhìn thấy → cuộn xuống vừa đủ
+    container.scrollTop += tdRect.bottom - containerRect.bottom + 5;
+  } else if (tdRect.top < containerRect.top) {
+    // Ô nằm trên vùng nhìn thấy → cuộn lên vừa đủ
+    container.scrollTop -= containerRect.top - tdRect.top + 5;
+  }
+
+  // Cuộn ngang
+  if (tdRect.right > containerRect.right) {
+    // Ô nằm bên phải vùng nhìn thấy → cuộn phải vừa đủ
+    container.scrollLeft += tdRect.right - containerRect.right + 5;
+  } else if (tdRect.left < containerRect.left) {
+    // Ô nằm bên trái vùng nhìn thấy → cuộn trái vừa đủ
+    container.scrollLeft -= containerRect.left - tdRect.left + 5;
+  }
+}
 
 window.addEventListener("DOMContentLoaded", () => {
   khoiTaoTieuDe();
@@ -1533,13 +1658,13 @@ function xoaBang(loai) {
 
   // 2. Tiến hành dọn sạch và tạo lại khung bảng trống theo đúng số cột ban đầu
   if (loai === "nhap") {
-    taoBangTrong(thanBangNhap, 15, 3);
+    taoBangTrong(thanBangNhap, 30, 3);
     showToast("Đã xóa sạch dữ liệu Bảng 1!", "info");
   } else if (loai === "kq") {
-    taoBangTrong(thanBangKq, 15, 5);
+    taoBangTrong(thanBangKq, 30, 5);
     showToast("Đã xóa sạch dữ liệu Bảng 2!", "info");
   } else if (loai === "in") {
-    taoBangTrong(thanBangIn, 15, 5);
+    taoBangTrong(thanBangIn, 30, 5);
 
     // Đồng thời xóa sạch khu vực xem trước in đơn để tránh lệch dữ liệu hiển thị
     if (invoiceArea) {
