@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZinZinMotor — Hệ thống máy quét siêu tốc ⚡</title>
+    <title>ZinZinMotor — Kiểm Hàng ⚡</title>
     <link rel="icon" type="image/png" href="logo.png" />
     <link rel="stylesheet" href="styles_van_don_kiem_hang.css" />
   </head>
@@ -11,69 +11,62 @@
     <!-- ════ HEADER ════ -->
     <div class="header">
       <div class="header-left">
-        <div class="title">HỆ THỐNG TRA CỨU MÁY QUÉT</div>
-        <div class="subtitle" id="sub-title">
-          Chế độ: Đang nạp bộ nhớ đệm...
-        </div>
+        <div class="title">⚡ HỆ THỐNG KIỂM HÀNG TỰ ĐỘNG</div>
+        <div class="subtitle" id="sub-title">Đang nạp bộ nhớ đệm...</div>
       </div>
-
-      <!-- Cụm bên phải chứa nút Quay về và RAM Cache -->
-      <div style="display: flex; gap: 15px; align-items: center">
-        <button
-          onclick="window.location.href = 'index.html'"
-          style="
-            background-color: #30364d;
-            color: #ffffff;
-            border: none;
-            padding: 6px 15px;
-            border-radius: 5px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-          "
-        >
-          🔙 Quay lại trang chủ
+      <div style="display: flex; gap: 12px; align-items: center">
+        <div class="ram-badge" id="ram-cache">RAM: 0 mã</div>
+        <button class="btn-back" onclick="window.location.href = 'index.html'">
+          🔙 Trang chủ
         </button>
-        <div class="ram-badge" id="ram-cache">RAM Cache: 0 mã vận đơn</div>
       </div>
     </div>
 
-    <!-- ════ THANH TÌM KIẾM ════ -->
+    <!-- ════ THANH NHẬP LIỆU ẨN (nhận input từ máy quét) ════ -->
     <div class="search-row">
       <input
         type="text"
         id="search-input"
         class="search-box"
-        placeholder="ĐẶT CON TRỎ TẠI ĐÂY VÀ BẤM MÁY QUÉT..."
+        placeholder="🔫 BẮN MÃ VẠCH VÀO ĐÂY (mã vận đơn hoặc mã sản phẩm)..."
         autocomplete="off"
         autofocus
       />
-      <button class="btn-clear-table" onclick="xoaGiaoDien()">Xóa bảng</button>
+      <button class="btn-clear-table" onclick="xoaGiaoDien()">🗑️ Xóa</button>
     </div>
 
-    <!-- ════ THỐNG KÊ KẾT QUẢ ════ -->
-    <div class="stats-row">
-      <span class="stats-label" id="stats-label"></span>
-      <span class="total-label" id="total-label"></span>
+    <!-- ════ THÔNG TIN ĐƠN HÀNG ĐANG KIỂM ════ -->
+    <div id="don-hien-tai" class="don-hien-tai" style="display: none">
+      <div class="don-info">
+        <span class="don-label">📦 Mã Vận Đơn:</span>
+        <span class="don-value" id="don-ma-van-don">—</span>
+        <span class="don-label" style="margin-left: 20px">🧾 Mã Đơn Hàng:</span>
+        <span class="don-value" id="don-ma-don-hang">—</span>
+      </div>
+      <div class="don-tien-do" id="don-tien-do">0 / 0 sản phẩm đã đủ hàng</div>
     </div>
 
-    <!-- ════ BẢNG KẾT QUẢ ════ -->
-    <div class="table-wrapper">
-      <table class="ket-qua-table">
-        <thead>
-          <tr>
-            <th>Mã vận đơn</th>
-            <th>Mã đơn hàng</th>
-            <th class="col-sku-head">SKU</th>
-            <th>SL</th>
-            <th>Giá (VNĐ)</th>
-          </tr>
-        </thead>
-        <tbody id="ket-qua-tbody">
-          <!-- Kết quả sẽ được render tại đây -->
-        </tbody>
-      </table>
+    <!-- ════ LƯỚI THẺ SẢN PHẨM ════ -->
+    <div class="the-grid" id="the-grid">
+      <!-- Thẻ sản phẩm sẽ được render tại đây -->
+    </div>
+
+    <!-- ════ TRẠNG THÁI CHỜ ════ -->
+    <div class="cho-quet" id="cho-quet">
+      <div class="cho-quet-icon">🔫</div>
+      <div class="cho-quet-text">Bắn mã vận đơn để bắt đầu kiểm hàng</div>
+      <div class="cho-quet-sub" id="cho-quet-sub">
+        Hệ thống đang nạp dữ liệu...
+      </div>
+    </div>
+
+    <!-- ════ THÔNG BÁO HOÀN TẤT ════ -->
+    <div class="hoan-tat-overlay" id="hoan-tat-overlay" style="display: none">
+      <div class="hoan-tat-box">
+        <div class="hoan-tat-icon">✅</div>
+        <div class="hoan-tat-text">ĐỦ HÀNG!</div>
+        <div class="hoan-tat-sub">Bắn mã vận đơn mới để tiếp tục</div>
+      </div>
     </div>
 
     <!-- ════ THANH TRẠNG THÁI ════ -->

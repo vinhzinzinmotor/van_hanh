@@ -1,45 +1,46 @@
 // =========================================================================
-// HỆ THỐNG TRA CỨU MÃ VẬN ĐƠN — ZinZinMotor
-// Chuyển đổi 100% từ van_don_kiem_hang.py (PyQt6 → JavaScript)
-// Bảo toàn toàn bộ thuật toán: RAM Cache O(1), Delta Sync,
-// Live Fallback, Lọc phiên & Khử trùng
+// HỆ THỐNG KIỂM HÀNG TỰ ĐỘNG — ZinZinMotor
+// RAM Cache O(1), Delta Sync, Live Fallback — Giao diện thẻ card
 // =========================================================================
 
-// ──────────────────────────────────────────────────
-//  ⚙️ CẤU HÌNH HỆ THỐNG (sao chép từ Python)
-//  ANH ĐIỀN ĐÚNG 2 GIÁ TRỊ VÀO ĐÂY
-// ──────────────────────────────────────────────────
-const SUPABASE_URL = "https://ecctfcqqibuaxfpfsimy.supabase.co"; // VD: https://xxxxxx.supabase.co
+// ── CẤU HÌNH — ĐIỀN VÀO 3 CHỖ NÀY ──
+const SUPABASE_URL = "https://ecctfcqqibuaxfpfsimy.supabase.co";
 const SUPABASE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY3RmY3FxaWJ1YXhmcGZzaW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MTkyMjEsImV4cCI6MjA5OTQ5NTIyMX0.zCXn7O-sXkrDZMgJtn9OTA0JsVffs7Tc-FLgYhb4qqI";
 const TABLE_NAME = "van_hanh_tao_don_hang";
-const SYNC_INTERVAL = 30000; // 30 giây — giống Python SYNC_INTERVAL
+const SYNC_INTERVAL = 30000; // 30 giây
 
 const HEADERS = {
   apikey: SUPABASE_KEY,
   Authorization: "Bearer " + SUPABASE_KEY,
   "Content-Type": "application/json",
 };
-
-const COL_KEYS = ["ma_van_don", "ma_don_hang", "sku", "so_luong", "gia"];
-const COL_HEADERS = ["Mã vận đơn", "Mã đơn hàng", "SKU", "SL", "Giá (VNĐ)"];
-
+// Chuẩn hóa SKU: bỏ dấu gạch ngang để so khớp
+function chuanHoaSku(sku) {
+  return String(sku || "")
+    .replace(/-/g, "")
+    .trim()
+    .toUpperCase();
+}
 // ──────────────────────────────────────────────────
-//  🧠 CƠ SỞ DỮ LIỆU TRÊN RAM (TỐC ĐỘ O(1))
-//  Tương đương: LOCAL_DB = {} và LAST_SYNC_TIME trong Python
+//  🧠 RAM CACHE
 // ──────────────────────────────────────────────────
-let LOCAL_DB = {};
+let LOCAL_DB = {}; // { ma_van_don: [rows...] }
 let LAST_SYNC_TIME = null;
 
+// Trạng thái phiên kiểm hàng hiện tại
+let phienHienTai = {
+  maVanDon: null, // mã vận đơn đang kiểm
+  maDonHang: null, // mã đơn hàng tương ứng
+  theCards: {}, // { sku: { canKiem, daKiem } }
+};
+
 // ──────────────────────────────────────────────────
-//  🧠 THUẬT TOÁN LỌC PHIÊN VÀ KHỬ TRÙNG
-//  Tương đương hàm: update_local_db(rows) trong Python
-//  Bảo toàn 100% logic gốc
+//  🧠 CẬP NHẬT RAM — giữ nguyên thuật toán gốc
 // ──────────────────────────────────────────────────
 function updateLocalDb(rows) {
   if (!rows || rows.length === 0) return;
 
-  // Gom nhóm theo ma_van_don (giống grouped_new trong Python)
   const groupedNew = {};
   for (const row of rows) {
     const mvn = row.ma_van_don ? String(row.ma_van_don).trim() : null;
@@ -48,17 +49,14 @@ function updateLocalDb(rows) {
     groupedNew[mvn].push(row);
   }
 
-  // Xử lý từng nhóm (giống for mvn, new_rows in grouped_new.items())
   for (const [mvn, newRows] of Object.entries(groupedNew)) {
     const existingRows = LOCAL_DB[mvn] || [];
     const combined = [...existingRows, ...newRows];
 
-    // ── Khử trùng theo fingerprint (giống seen_fingerprints trong Python)
     const uniqueCombined = [];
     const seenFingerprints = new Set();
     for (const r of combined) {
-      const fingerprint = JSON.stringify([
-        r.id ?? null, // <-- thêm dòng này
+      const fp = JSON.stringify([
         r.phien_id ?? null,
         r.ma_van_don ?? null,
         r.ma_don_hang ?? null,
@@ -66,48 +64,27 @@ function updateLocalDb(rows) {
         r.so_luong ?? null,
         r.gia ?? null,
       ]);
-      if (!seenFingerprints.has(fingerprint)) {
-        seenFingerprints.add(fingerprint);
+      if (!seenFingerprints.has(fp)) {
+        seenFingerprints.add(fp);
         uniqueCombined.push(r);
       }
     }
 
     if (uniqueCombined.length === 0) continue;
 
-    // ── Tìm dòng mới nhất theo thoi_gian (giống max(...) trong Python)
     const latestRow = uniqueCombined.reduce((prev, curr) =>
       (curr.thoi_gian || "") > (prev.thoi_gian || "") ? curr : prev,
     );
     const latestPhienId = latestRow.phien_id;
 
-    // ── Lọc chỉ giữ lại phiên mới nhất (Có hỗ trợ dung sai thời gian)
     let filteredRows;
     if (latestPhienId) {
-      // Ưu tiên 1: Lọc tuyệt đối theo phien_id (nếu dữ liệu có phien_id)
       filteredRows = uniqueCombined.filter((r) => r.phien_id === latestPhienId);
     } else {
-      // Ưu tiên 2: Lọc theo thời gian với khoảng dung sai (khi không có phien_id)
-      const maxTimeStr = latestRow.thoi_gian || "";
-
-      if (maxTimeStr) {
-        const maxTimeMs = new Date(maxTimeStr).getTime();
-
-        // ⚙️ CẤU HÌNH DUNG SAI THỜI GIAN (Đơn vị: Mili-giây)
-        // 15000 = 15 giây. Có thể tăng lên 30000 (30s) hoặc 60000 (1 phút) tùy ý.
-        const dungSaiMs = 15000;
-
-        filteredRows = uniqueCombined.filter((r) => {
-          if (!r.thoi_gian) return false;
-
-          const rowTimeMs = new Date(r.thoi_gian).getTime();
-
-          // Kiểm tra xem thời gian của dòng này có cách dòng mới nhất <= dung sai không
-          return maxTimeMs - rowTimeMs <= dungSaiMs;
-        });
-      } else {
-        // Trường hợp ngoại lệ không có thời gian
-        filteredRows = uniqueCombined;
-      }
+      const maxTime = latestRow.thoi_gian || "";
+      filteredRows = uniqueCombined.filter(
+        (r) => (r.thoi_gian || "") === maxTime,
+      );
     }
 
     LOCAL_DB[mvn] = filteredRows;
@@ -115,21 +92,17 @@ function updateLocalDb(rows) {
 }
 
 // ──────────────────────────────────────────────────
-//  🔄 ĐỒNG BỘ DỮ LIỆU TỪ SUPABASE
-//  Tương đương class: SyncBackendThread trong Python
-//  Có phân trang (limit/offset) giống vòng while True
+//  🔄 ĐỒNG BỘ SUPABASE — giữ nguyên thuật toán gốc
 // ──────────────────────────────────────────────────
-async function dongBoSuapabase(isFirstRun) {
+async function dongBoSupabase(isFirstRun) {
   const nowStr = new Date().toISOString();
   let startTime;
 
   if (isFirstRun) {
-    // Lần đầu: lấy 3 ngày gần nhất (giống timedelta(days=3) trong Python)
     const d = new Date();
     d.setDate(d.getDate() - 3);
     startTime = d.toISOString();
   } else {
-    // Delta sync: từ lần sync cuối (giống LAST_SYNC_TIME trong Python)
     startTime = LAST_SYNC_TIME;
     if (!startTime) return { count: 0, status: "Chưa có thời gian sync" };
   }
@@ -139,7 +112,6 @@ async function dongBoSuapabase(isFirstRun) {
   let offset = 0;
 
   try {
-    // ── Vòng lặp phân trang (giống while True + break trong Python)
     while (true) {
       const params = new URLSearchParams({
         thoi_gian: "gte." + startTime,
@@ -165,14 +137,11 @@ async function dongBoSuapabase(isFirstRun) {
       if (!rows || rows.length === 0) break;
 
       allRows = allRows.concat(rows);
-      if (rows.length < limit) break; // Hết trang
+      if (rows.length < limit) break;
       offset += limit;
     }
 
-    // ── Cập nhật RAM (giống update_local_db(all_rows) trong Python)
-    if (allRows.length > 0) {
-      updateLocalDb(allRows);
-    }
+    if (allRows.length > 0) updateLocalDb(allRows);
 
     LAST_SYNC_TIME = nowStr;
     return { count: allRows.length, status: "Thành công" };
@@ -182,8 +151,7 @@ async function dongBoSuapabase(isFirstRun) {
 }
 
 // ──────────────────────────────────────────────────
-//  🌐 TRA CỨU KHẨN CẤP TRỰC TIẾP TỪ INTERNET
-//  Tương đương class: LiveFetchFallbackThread trong Python
+//  🌐 TRA CỨU KHẨN CẤP — giữ nguyên thuật toán gốc
 // ──────────────────────────────────────────────────
 async function traKhanCap(maVanDon) {
   try {
@@ -197,9 +165,7 @@ async function traKhanCap(maVanDon) {
       { headers: HEADERS },
     );
 
-    if (resp.ok) {
-      return (await resp.json()) || [];
-    }
+    if (resp.ok) return (await resp.json()) || [];
     return [];
   } catch (e) {
     return [];
@@ -207,116 +173,256 @@ async function traKhanCap(maVanDon) {
 }
 
 // ──────────────────────────────────────────────────
-//  📊 RENDER KẾT QUẢ LÊN BẢNG
-//  Tương đương hàm: _render_table_data(rows) trong Python
+//  🃏 RENDER THẺ CARD CHO ĐƠN HÀNG
 // ──────────────────────────────────────────────────
-function renderKetQua(rows) {
-  const tbody = document.getElementById("ket-qua-tbody");
-  const statsLabel = document.getElementById("stats-label");
-  const totalLabel = document.getElementById("total-label");
+function renderTheCards(rows) {
+  const grid = document.getElementById("the-grid");
+  const choQue = document.getElementById("cho-quet");
+  const donHienTai = document.getElementById("don-hien-tai");
 
-  tbody.innerHTML = "";
-  let tongTien = 0;
+  grid.innerHTML = "";
+  phienHienTai.theCards = {};
 
-  for (const row of rows) {
-    const tr = document.createElement("tr");
+  if (!rows || rows.length === 0) return;
 
-    for (const key of COL_KEYS) {
-      const td = document.createElement("td");
-      const val = row[key] !== undefined ? row[key] : "";
+  // Lấy thông tin đơn hàng
+  phienHienTai.maVanDon = rows[0].ma_van_don || "";
+  phienHienTai.maDonHang = rows[0].ma_don_hang || "";
 
-      if (key === "gia") {
-        // Giống: f"{int(val):,}".replace(",", ".") + " ₫" trong Python
-        const gia = parseInt(val) || 0;
-        const sl = parseInt(row.so_luong) || 1;
-        td.textContent = gia.toLocaleString("vi-VN") + " ₫";
-        td.className = "col-gia";
-        tongTien += gia * sl;
-      } else if (key === "so_luong") {
-        td.textContent = String(val);
-        td.className = "col-sl";
-      } else if (key === "ma_van_don") {
-        td.textContent = String(val);
-        td.className = "col-mvd";
-      } else if (key === "sku") {
-        td.textContent = String(val);
-        td.className = "col-sku";
-      } else {
-        td.textContent = String(val);
-      }
+  // Hiện info bar, ẩn màn chờ
+  choQue.style.display = "none";
+  donHienTai.style.display = "flex";
+  document.getElementById("don-ma-van-don").textContent = phienHienTai.maVanDon;
+  document.getElementById("don-ma-don-hang").textContent =
+    phienHienTai.maDonHang;
 
-      tr.appendChild(td);
+  // Tạo thẻ cho từng SKU
+  rows.forEach(function (row) {
+    const sku = String(row.sku || "").trim();
+    const canKiem = parseInt(row.so_luong) || 1;
+    const tenSp = row.ten_san_pham || "";
+
+    // Lưu trạng thái vào RAM phiên
+    const skuKey = chuanHoaSku(sku);
+    phienHienTai.theCards[skuKey] = {
+      canKiem: canKiem,
+      daKiem: 0,
+      skuGoc: sku,
+    };
+
+    // Tạo thẻ DOM
+    const the = document.createElement("div");
+    the.className = "the-san-pham trang-thai-chua-du";
+    the.id = "the-" + skuKey;
+    the.innerHTML =
+      '<div class="the-sku">' +
+      sku +
+      "</div>" +
+      '<div class="the-ten">' +
+      tenSp +
+      "</div>" +
+      '<div class="the-progress-wrap">' +
+      '<div class="the-progress-bar" id="bar-' +
+      skuKey +
+      '" style="width:0%"></div>' +
+      "</div>" +
+      '<div class="the-dem">' +
+      '<div class="the-so-luong" id="dem-' +
+      skuKey +
+      '">0 / ' +
+      canKiem +
+      "</div>" +
+      '<div class="the-trang-thai chua-du" id="tag-' +
+      skuKey +
+      '">Chưa đủ</div>' +
+      "</div>";
+
+    grid.appendChild(the);
+  });
+
+  capNhatTienDo();
+}
+
+// ──────────────────────────────────────────────────
+//  ➕ CẬP NHẬT KHI QUÉT SKU SẢN PHẨM
+// ──────────────────────────────────────────────────
+function quetSku(sku) {
+  const card = phienHienTai.theCards[sku];
+  const skuHienThi = card ? card.skuGoc || sku : sku; // ← THÊM DÒNG NÀY
+
+  if (!card) {
+    // SKU không thuộc đơn này
+    setStatus("⚠️ SKU [" + skuHienThi + "] không có trong đơn hàng đang kiểm!");
+    const the = document.getElementById("the-" + sku);
+    if (the) {
+      the.classList.remove("flash-xanh");
+      void the.offsetWidth; // reset animation
+      the.classList.add("flash-do");
     }
-
-    tbody.appendChild(tr);
+    return;
   }
 
-  // ── Tính thống kê (giống stats_label và total_label trong Python)
-  const nDon = new Set(rows.map((r) => r.ma_don_hang)).size;
-  const nSku = rows.length;
-  statsLabel.textContent =
-    "Kết quả: " + nDon + " đơn hàng · " + nSku + " sản phẩm";
-  totalLabel.textContent = "Tổng: " + tongTien.toLocaleString("vi-VN") + " ₫";
+  if (card.daKiem >= card.canKiem) {
+    // Đã đủ rồi — cảnh báo quét thừa
+    setStatus("⚠️ SKU [" + skuHienThi + "] đã đủ số lượng rồi! Kiểm tra lại.");
+    return;
+  }
+
+  // Cộng thêm 1
+  card.daKiem++;
+
+  // Cập nhật UI thẻ
+  const phanTram = Math.round((card.daKiem / card.canKiem) * 100);
+  const bar = document.getElementById("bar-" + sku);
+  const dem = document.getElementById("dem-" + sku);
+  const tag = document.getElementById("tag-" + sku);
+  const the = document.getElementById("the-" + sku);
+
+  if (bar) {
+    bar.style.width = phanTram + "%";
+    bar.classList.toggle("day", card.daKiem >= card.canKiem);
+  }
+  if (dem) dem.textContent = card.daKiem + " / " + card.canKiem;
+
+  if (card.daKiem >= card.canKiem) {
+    // Đủ hàng
+    if (the) {
+      the.classList.remove("trang-thai-chua-du", "flash-do");
+      the.classList.add("trang-thai-du-hang", "flash-xanh");
+    }
+    if (tag) {
+      tag.textContent = "✅ Đủ hàng";
+      tag.className = "the-trang-thai du-hang";
+    }
+    setStatus("✅ SKU [" + skuHienThi + "] — ĐỦ HÀNG!");
+  } else {
+    // Chưa đủ
+    if (the) {
+      the.classList.remove("flash-xanh");
+      void the.offsetWidth;
+      the.classList.add("flash-xanh");
+    }
+    setStatus(
+      "📦 SKU [" + skuHienThi + "] — " + card.daKiem + "/" + card.canKiem,
+    );
+  }
+
+  capNhatTienDo();
+
+  // Kiểm tra toàn bộ đơn đã đủ chưa
+  const tatCa = Object.values(phienHienTai.theCards);
+  const dauDu = tatCa.filter((c) => c.daKiem >= c.canKiem).length;
+  if (dauDu === tatCa.length && tatCa.length > 0) {
+    hienHoanTat();
+  }
+}
+
+// ──────────────────────────────────────────────────
+//  📊 CẬP NHẬT THANH TIẾN ĐỘ TỔNG
+// ──────────────────────────────────────────────────
+function capNhatTienDo() {
+  const tatCa = Object.values(phienHienTai.theCards);
+  const daXong = tatCa.filter((c) => c.daKiem >= c.canKiem).length;
+  const el = document.getElementById("don-tien-do");
+  if (el)
+    el.textContent = daXong + " / " + tatCa.length + " sản phẩm đã đủ hàng";
+}
+
+// ──────────────────────────────────────────────────
+//  🎉 THÔNG BÁO HOÀN TẤT
+// ──────────────────────────────────────────────────
+function hienHoanTat() {
+  const overlay = document.getElementById("hoan-tat-overlay");
+  if (overlay) {
+    overlay.style.display = "flex";
+    setTimeout(function () {
+      overlay.style.display = "none";
+    }, 1000);
+  }
+  setStatus("🎉 ĐƠN HÀNG " + phienHienTai.maVanDon + " — ĐÃ ĐỦ TOÀN BỘ HÀNG!");
 }
 
 // ──────────────────────────────────────────────────
 //  ⚡ XỬ LÝ KHI QUÉT MÃ VẠCH (Enter)
-//  Tương đương hàm: _on_barcode_scanned() trong Python
-//  Logic: RAM trước → Internet sau (fallback)
+//  Phân biệt: mã vận đơn → load đơn | mã SKU → kiểm hàng
 // ──────────────────────────────────────────────────
 async function xuLyQuetMaVach() {
   const input = document.getElementById("search-input");
   const query = input.value.trim();
+  input.value = "";
+  input.focus();
   if (!query) return;
 
   const tStart = performance.now();
 
-  if (LOCAL_DB[query]) {
-    // ── Tìm thấy trên RAM → TỨC THÌ (giống if query in LOCAL_DB)
-    renderKetQua(LOCAL_DB[query]);
-    const tElapsed = (performance.now() - tStart).toFixed(2);
-    setStatus("⚡ XỬ LÝ TỨC THÌ: Tìm thấy trên RAM trong " + tElapsed + "ms");
-    input.value = "";
-    input.focus();
-  } else {
-    // ── Không có trên RAM → Tra cứu khẩn cấp (giống LiveFetchFallbackThread)
-    setStatus(
-      "🔍 Không có sẵn trên RAM. Đang truy vấn khẩn cấp từ Internet...",
-    );
-    input.value = "";
+  // ── Nếu đang có đơn và query là SKU thuộc đơn → kiểm hàng
+  const queryKey = chuanHoaSku(query);
+  if (phienHienTai.maVanDon && phienHienTai.theCards[queryKey] !== undefined) {
+    quetSku(queryKey);
+    return;
+  }
 
-    const rows = await traKhanCap(query);
+  // ── Thử tìm như mã vận đơn trước
+  let rows = LOCAL_DB[query] || null;
+
+  if (rows) {
+    // Tìm thấy trên RAM
+    const tElapsed = (performance.now() - tStart).toFixed(2);
+    setStatus("⚡ RAM: Tìm thấy đơn trong " + tElapsed + "ms");
+    batDauKiemDon(rows);
+  } else {
+    // Không có trên RAM → tra cứu khẩn cấp
+    setStatus("🔍 Không có trên RAM. Đang truy vấn Internet...");
+    rows = await traKhanCap(query);
 
     if (rows && rows.length > 0) {
-      // ── Cập nhật vào RAM luôn (giống update_local_db trong _on_fallback_result)
       updateLocalDb(rows);
       capNhatRamCache();
-      renderKetQua(LOCAL_DB[query] || rows);
-      setStatus("✓ Kết quả tìm kiếm từ Internet.");
+      batDauKiemDon(LOCAL_DB[query] || rows);
+      setStatus("✓ Đã tải đơn từ Internet.");
     } else {
-      // ── Không tìm thấy gì
-      document.getElementById("ket-qua-tbody").innerHTML = "";
-      document.getElementById("stats-label").textContent = "";
-      document.getElementById("total-label").textContent = "";
-      setStatus("❌ Không tìm thấy mã vận đơn: " + query);
+      // Không phải mã vận đơn → thử xem có phải SKU đang kiểm không
+      if (
+        phienHienTai.maVanDon &&
+        phienHienTai.theCards[queryKey] !== undefined
+      ) {
+        quetSku(queryKey);
+      } else {
+        setStatus("❌ Không tìm thấy: [" + query + "]");
+      }
     }
-
-    input.focus();
   }
 }
 
 // ──────────────────────────────────────────────────
+//  📦 BẮT ĐẦU KIỂM MỘT ĐƠN HÀNG MỚI
+// ──────────────────────────────────────────────────
+function batDauKiemDon(rows) {
+  // Reset trạng thái hoàn tất cũ nếu có
+  const overlay = document.getElementById("hoan-tat-overlay");
+  if (overlay) overlay.style.display = "none";
+
+  renderTheCards(rows);
+}
+
+// ──────────────────────────────────────────────────
 //  🗑️ XÓA GIAO DIỆN
-//  Tương đương hàm: _on_clear() trong Python
 // ──────────────────────────────────────────────────
 function xoaGiaoDien() {
-  document.getElementById("ket-qua-tbody").innerHTML = "";
-  document.getElementById("stats-label").textContent = "";
-  document.getElementById("total-label").textContent = "";
+  phienHienTai = { maVanDon: null, maDonHang: null, theCards: {} };
+
+  document.getElementById("the-grid").innerHTML = "";
+  document.getElementById("don-hien-tai").style.display = "none";
+  document.getElementById("cho-quet").style.display = "flex";
+
+  const overlay = document.getElementById("hoan-tat-overlay");
+  if (overlay) overlay.style.display = "none";
+
   const input = document.getElementById("search-input");
   input.value = "";
   input.focus();
-  setStatus("Đã xóa giao diện. Sẵn sàng nhận lượt quét mới.");
+
+  setStatus("Đã xóa. Sẵn sàng quét mã vận đơn mới.");
 }
 
 // ──────────────────────────────────────────────────
@@ -330,48 +436,47 @@ function setStatus(msg) {
 function capNhatRamCache() {
   const count = Object.keys(LOCAL_DB).length;
   const el = document.getElementById("ram-cache");
-  if (el)
-    el.textContent =
-      "RAM Cache: " + count.toLocaleString("vi-VN") + " mã vận đơn";
+  if (el) el.textContent = "RAM: " + count.toLocaleString("vi-VN") + " mã";
 }
 
 // ──────────────────────────────────────────────────
 //  🚀 KHỞI ĐỘNG HỆ THỐNG
-//  Tương đương __init__ + _on_initial_sync_done trong Python
 // ──────────────────────────────────────────────────
 async function khoiDong() {
-  setStatus("🔄 Đang tải trước cơ sở dữ liệu về RAM để chuẩn bị quét...");
-  document.getElementById("sub-title").textContent =
-    "Chế độ: Đang nạp bộ nhớ đệm...";
+  setStatus("🔄 Đang tải dữ liệu về RAM...");
+  document.getElementById("sub-title").textContent = "Đang nạp bộ nhớ đệm...";
 
-  // ── Đồng bộ lần đầu (3 ngày gần nhất)
-  const result = await dongBoSuapabase(true);
+  const result = await dongBoSupabase(true);
 
   if (result.status === "Thành công") {
-    document.getElementById("sub-title").textContent =
-      "Chế độ: ĐÃ SẴN SÀNG QUÉT ⚡ KHÔNG ĐỘ TRỄ";
+    document.getElementById("sub-title").textContent = "ĐÃ SẴN SÀNG QUÉT ⚡";
     capNhatRamCache();
     setStatus(
-      "✓ Đã đưa thành công vào RAM toàn bộ " +
-        result.count.toLocaleString("vi-VN") +
-        " bản ghi dữ liệu.",
+      "✓ Đã nạp " + result.count.toLocaleString("vi-VN") + " bản ghi vào RAM.",
     );
 
-    // ── Bắt đầu delta sync mỗi 30 giây (giống sync_timer.start(SYNC_INTERVAL))
+    // Delta sync mỗi 30 giây
     setInterval(async function () {
-      const r = await dongBoSuapabase(false);
+      const r = await dongBoSupabase(false);
       if (r.status === "Thành công") {
         capNhatRamCache();
-        if (r.count > 0) {
-          setStatus("🔄 Đã đồng bộ thêm " + r.count + " bản ghi mới.");
-        }
+        if (r.count > 0)
+          setStatus("🔄 Đồng bộ thêm " + r.count + " bản ghi mới.");
       } else {
         setStatus("⚠️ Lỗi cập nhật ngầm: " + r.status);
       }
     }, SYNC_INTERVAL);
+
+    // Cập nhật màn chờ
+    const choQuetSub = document.getElementById("cho-quet-sub");
+    if (choQuetSub) {
+      choQuetSub.textContent =
+        "Đã nạp " +
+        Object.keys(LOCAL_DB).length.toLocaleString("vi-VN") +
+        " mã vận đơn vào RAM";
+    }
   } else {
-    document.getElementById("sub-title").textContent =
-      "Chế độ: ❌ LỖI ĐỒNG BỘ DỮ LIỆU";
+    document.getElementById("sub-title").textContent = "❌ LỖI ĐỒNG BỘ";
     setStatus("🚨 " + result.status);
   }
 
@@ -379,12 +484,11 @@ async function khoiDong() {
 }
 
 // ──────────────────────────────────────────────────
-//  🎯 GẮN SỰ KIỆN KHI TRANG LOAD XONG
+//  🎯 GẮN SỰ KIỆN
 // ──────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function () {
   const input = document.getElementById("search-input");
 
-  // Enter → quét mã vạch (giống returnPressed.connect)
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -392,11 +496,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Escape toàn trang → xóa giao diện (giống QShortcut Escape)
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") xoaGiaoDien();
   });
 
-  // Khởi động hệ thống
   khoiDong();
 });
