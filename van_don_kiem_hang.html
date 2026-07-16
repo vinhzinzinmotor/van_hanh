@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZinZinMotor — Hệ thống máy quét siêu tốc ⚡</title>
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="stylesheet" href="styles_van_don_kiem_hang.css" />
+  </head>
+  <body>
+    <!-- ════ HEADER ════ -->
+    <div class="header">
+      <div class="header-left">
+        <div class="title">HỆ THỐNG TRA CỨU MÁY QUÉT</div>
+        <div class="subtitle" id="sub-title">
+          Chế độ: Đang nạp bộ nhớ đệm...
+        </div>
+      </div>
+
+      <!-- Cụm bên phải chứa nút Quay về và RAM Cache -->
+      <div style="display: flex; gap: 15px; align-items: center">
+        <button
+          onclick="window.location.href = 'index.html'"
+          style="
+            background-color: #30364d;
+            color: #ffffff;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+          "
+        >
+          🔙 Quay lại trang chủ
+        </button>
+        <div class="ram-badge" id="ram-cache">RAM Cache: 0 mã vận đơn</div>
+      </div>
+    </div>
+
+    <!-- ════ THANH TÌM KIẾM ════ -->
+    <div class="search-row">
+      <input
+        type="text"
+        id="search-input"
+        class="search-box"
+        placeholder="ĐẶT CON TRỎ TẠI ĐÂY VÀ BẤM MÁY QUÉT..."
+        autocomplete="off"
+        autofocus
+      />
+      <button class="btn-clear-table" onclick="xoaGiaoDien()">Xóa bảng</button>
+    </div>
+
+    <!-- ════ THỐNG KÊ KẾT QUẢ ════ -->
+    <div class="stats-row">
+      <span class="stats-label" id="stats-label"></span>
+      <span class="total-label" id="total-label"></span>
+    </div>
+
+    <!-- ════ BẢNG KẾT QUẢ ════ -->
+    <div class="table-wrapper">
+      <table class="ket-qua-table">
+        <thead>
+          <tr>
+            <th>Mã vận đơn</th>
+            <th>Mã đơn hàng</th>
+            <th class="col-sku-head">SKU</th>
+            <th>SL</th>
+            <th>Giá (VNĐ)</th>
+          </tr>
+        </thead>
+        <tbody id="ket-qua-tbody">
+          <!-- Kết quả sẽ được render tại đây -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ════ THANH TRẠNG THÁI ════ -->
+    <div class="status-bar" id="status-bar">Đang khởi động hệ thống...</div>
+
+    <script src="script_van_don_kiem_hang.js"></script>
+  </body>
+</html>

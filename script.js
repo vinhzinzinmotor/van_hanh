@@ -1327,7 +1327,10 @@ btnTaoIn.addEventListener("click", function () {
 
     var total = don.items.reduce(function (s, it) {
       var pNum = parseFloat(normPrice(it.price)) || 0;
-      return s + pNum;
+      // Ép kiểu Số lượng (qty) từ chuỗi văn bản thành số nguyên
+      var qNum = parseInt(it.qty, 10) || 0;
+      // Thuật toán mới: Cộng dồn tích của Giá x Số lượng
+      return s + pNum * qNum;
     }, 0);
 
     // ── SẮP XẾP: Vị trí A→Z, không có vị trí xuống cuối ──
