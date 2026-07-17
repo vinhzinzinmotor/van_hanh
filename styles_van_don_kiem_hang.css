@@ -224,7 +224,7 @@ body {
 
 .the-sku {
   font-family: monospace;
-  font-size: 15px;
+  font-size: 25px;
   font-weight: 800;
   color: #64b5f6;
   margin-bottom: 4px;
@@ -331,9 +331,19 @@ body {
   gap: 12px;
   pointer-events: none;
 }
-.cho-quet-icon { font-size: 64px; opacity: 0.3; }
-.cho-quet-text { font-size: 18px; font-weight: 700; color: #4a5168; }
-.cho-quet-sub  { font-size: 13px; color: #30364d; }
+.cho-quet-icon {
+  font-size: 64px;
+  opacity: 0.3;
+}
+.cho-quet-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4a5168;
+}
+.cho-quet-sub {
+  font-size: 13px;
+  color: #30364d;
+}
 
 /* ════ OVERLAY HOÀN TẤT ════ */
 .hoan-tat-overlay {
@@ -353,7 +363,10 @@ body {
   text-align: center;
   box-shadow: 0 0 60px rgba(0, 230, 118, 0.4);
 }
-.hoan-tat-icon { font-size: 72px; margin-bottom: 16px; }
+.hoan-tat-icon {
+  font-size: 72px;
+  margin-bottom: 16px;
+}
 .hoan-tat-text {
   font-size: 36px;
   font-weight: 900;
@@ -361,4 +374,7 @@ body {
   letter-spacing: 2px;
   margin-bottom: 10px;
 }
-.hoan-tat-sub { font-size: 14px; color: #8892c8; }
+.hoan-tat-sub {
+  font-size: 14px;
+  color: #8892c8;
+}
