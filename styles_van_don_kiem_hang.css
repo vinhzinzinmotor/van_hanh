@@ -294,18 +294,18 @@ body {
     transform: translateX(0);
   }
   20% {
-    transform: translateX(-6px);
-    box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
-    background: #3a1414;
+    transform: translateX(-12px);
+    box-shadow: 0 0 25px rgba(255, 0, 234, 0.8);
+    background: #ff7b00;
   }
   40% {
-    transform: translateX(5px);
+    transform: translateX(10px);
   }
   60% {
-    transform: translateX(-4px);
+    transform: translateX(-8px);
   }
   80% {
-    transform: translateX(2px);
+    transform: translateX(6px);
   }
 }
 
@@ -558,10 +558,10 @@ body {
 /* 🌀 Kịch bản chớp viền đỏ hiệu ứng Cyber */
 @keyframes flashVignetteCyber {
   0% {
-    box-shadow: inset 0 0 100px rgba(231, 76, 60, 0.8);
+    box-shadow: inset 0 0 100px rgba(255, 238, 0, 0.8);
   }
   50% {
-    box-shadow: inset 0 0 150px rgba(231, 76, 60, 1);
+    box-shadow: inset 0 0 150px rgb(228, 231, 60);
   }
   100% {
     box-shadow: inset 0 0 80px rgba(231, 76, 60, 0);
