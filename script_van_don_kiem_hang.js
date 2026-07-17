@@ -13,12 +13,23 @@ const SYNC_INTERVAL = 30000; // 30 giây
 // ── TẢI SẴN ÂM THANH KHI TRANG MỞ ──
 const amThanhHoanTat = new Audio("sound/hoan_thanh.mp3");
 amThanhHoanTat.preload = "auto";
+
 // ── TẢI SẴN ÂM THANH LỖI ──
 const amThanhLoi = new Audio("sound/error.mp3");
 amThanhLoi.preload = "auto";
+
+// ── TẢI SẴN ÂM THANH QUÉT ĐÚNG ──
+const amThanhQuetDung = new Audio("sound/quet_ma_hang.mp3");
+amThanhQuetDung.preload = "auto";
+
 function phatAmThanhLoi() {
   amThanhLoi.currentTime = 0;
   amThanhLoi.play().catch(function () {});
+}
+
+function phatAmThanhQuetDung() {
+  amThanhQuetDung.currentTime = 0;
+  amThanhQuetDung.play().catch(function () {});
 }
 
 const HEADERS = {
@@ -308,6 +319,13 @@ function quetSku(sku) {
       tag.className = "the-trang-thai du-hang";
     }
     setStatus("✅ SKU [" + skuHienThi + "] — ĐỦ HÀNG!");
+    // Chỉ phát tiếng quét đúng nếu đơn CHƯA hoàn tất toàn bộ
+    var tatCaDu = Object.values(phienHienTai.theCards).every(function (c) {
+      return c.daKiem >= c.canKiem;
+    });
+    if (!tatCaDu) {
+      phatAmThanhQuetDung();
+    }
   } else {
     // Chưa đủ
     if (the) {
@@ -318,6 +336,7 @@ function quetSku(sku) {
     setStatus(
       "📦 SKU [" + skuHienThi + "] — " + card.daKiem + "/" + card.canKiem,
     );
+    phatAmThanhQuetDung(); // ← THÊM
   }
 
   capNhatTienDo();
