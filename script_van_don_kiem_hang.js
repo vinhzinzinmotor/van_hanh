@@ -10,6 +10,10 @@ const SUPABASE_KEY =
 const TABLE_NAME = "van_hanh_tao_don_hang";
 const SYNC_INTERVAL = 30000; // 30 giây
 
+// ── TẢI SẴN ÂM THANH KHI TRANG MỞ ──
+const amThanhHoanTat = new Audio("sound/hoan_thanh.mp3");
+amThanhHoanTat.preload = "auto";
+
 const HEADERS = {
   apikey: SUPABASE_KEY,
   Authorization: "Bearer " + SUPABASE_KEY,
@@ -332,9 +336,9 @@ function capNhatTienDo() {
 //  🎉 THÔNG BÁO HOÀN TẤT
 // ──────────────────────────────────────────────────
 function hienHoanTat() {
-  // ── PHÁT ÂM THANH HOÀN THÀNH ──
-  const am = new Audio("sound/hoan_thanh.mp3");
-  am.play().catch(function () {});
+  // ── PHÁT NGAY — KHÔNG TRỄ ──
+  amThanhHoanTat.currentTime = 0;
+  amThanhHoanTat.play().catch(function () {});
   const overlay = document.getElementById("hoan-tat-overlay");
   if (overlay) {
     overlay.style.display = "flex";
