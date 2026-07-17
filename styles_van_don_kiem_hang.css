@@ -265,9 +265,9 @@ body {
   animation: flashXanhCyber 0.55s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-.the-san-pham.flash-do {
-  /* Hiệu ứng giật lắc cảnh báo chạy theo dạng tuyến tính mạnh mẽ */
-  animation: flashDoCyber 0.4s linear;
+.flash-do {
+  /* Thêm !important vào sau để cưỡng ép ô tìm kiếm đang focus phải giật lắc */
+  animation: flashDoCyber 0.4s linear !important;
 }
 
 /* 🌀 Hiệu ứng quét đúng: Thẻ tự động nẩy nhẹ lên, tỏa ánh sáng Neon cực mạnh */
@@ -508,3 +508,63 @@ body {
   transform: scale(1);
   opacity: 1;
 }
+/* ════ HÀO QUANG VIỀN ĐỎ TOÀN MÀN HÌNH (VIGNETTE) ════ */
+.vignette-error {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  /* Đổ bóng đỏ từ 4 góc bo vào trong */
+  box-shadow: inset 0 0 80px rgba(231, 76, 60, 0);
+  transition: box-shadow 0.1s ease;
+}
+
+/* Khi có class flash-vignette, viền đỏ sẽ bừng sáng */
+.vignette-error.flash-vignette {
+  animation: flashVignetteCyber 0.25s ease-out;
+}
+
+/* Khung lưới hoặc Body giật bần bật theo cả 2 trục X và Y */
+.screen-shake-cyber {
+  animation: screenShakeCyber 0.2s linear !important;
+}
+
+/* 🌀 Kịch bản rung lắc toàn màn hình cực mạnh trong 0.2 giây */
+@keyframes screenShakeCyber {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-4px, 3px);
+  }
+  30% {
+    transform: translate(4px, -2px);
+  }
+  45% {
+    transform: translate(-3px, -3px);
+  }
+  60% {
+    transform: translate(3px, 3px);
+  }
+  75% {
+    transform: translate(-2px, 1px);
+  }
+  90% {
+    transform: translate(2px, -1px);
+  }
+}
+
+/* 🌀 Kịch bản chớp viền đỏ hiệu ứng Cyber */
+@keyframes flashVignetteCyber {
+  0% {
+    box-shadow: inset 0 0 100px rgba(231, 76, 60, 0.8);
+  }
+  50% {
+    box-shadow: inset 0 0 150px rgba(231, 76, 60, 1);
+  }
+  100% {
+    box-shadow: inset 0 0 80px rgba(231, 76, 60, 0);
+  }
+}
+/*========================================================================*/

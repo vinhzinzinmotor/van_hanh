@@ -290,25 +290,39 @@ function renderTheCards(rows) {
 // ──────────────────────────────────────────────────
 function quetSku(sku) {
   const card = phienHienTai.theCards[sku];
-  const skuHienThi = card ? card.skuGoc || sku : sku; // ← THÊM DÒNG NÀY
+  const skuHienThi = card ? card.skuGoc || sku : sku;
 
+  // 🛑 TRƯỜNG HỢP 1: SKU KHÔNG THUỘC ĐƠN HÀNG NÀY (Quét sai mã)
   if (!card) {
-    // SKU không thuộc đơn này
     setStatus("⚠️ SKU [" + skuHienThi + "] không có trong đơn hàng đang kiểm!");
-    phatAmThanhLoi(); // ← THÊM
-    const the = document.getElementById("the-" + sku);
-    if (the) {
-      the.classList.remove("flash-xanh");
-      void the.offsetWidth; // reset animation
-      the.classList.add("flash-do");
+    phatAmThanhLoi();
+
+    // 🚀 KÍCH HOẠT: Rung lắc ô tìm kiếm bần bật
+    const searchBox = document.getElementById("search-input");
+    if (searchBox) {
+      searchBox.classList.remove("flash-do");
+      void searchBox.offsetWidth; // reset animation để có thể chạy lại nhiều lần
+      searchBox.classList.add("flash-do");
+      setTimeout(() => searchBox.classList.remove("flash-do"), 400); // Tự xóa class sau 0.4s
     }
     return;
   }
 
+  // 🛑 TRƯỜNG HỢP 2: SKU ĐÃ ĐỦ SỐ LƯỢNG RỒI (Quét thừa hàng)
   if (card.daKiem >= card.canKiem) {
-    // Đã đủ rồi — cảnh báo quét thừa
     setStatus("⚠️ SKU [" + skuHienThi + "] đã đủ số lượng rồi! Kiểm tra lại.");
-    phatAmThanhLoi(); // ← THÊM
+    phatAmThanhLoi();
+    // KÍCH HOẠT RUNG TOÀN MÀN HÌNH
+    kichHoatRungLacToanHeThong();
+
+    // 🚀 KÍCH HOẠT: Rung lắc và chớp đỏ ngay tại thẻ hàng bị thừa
+    const the = document.getElementById("the-" + sku);
+    if (the) {
+      the.classList.remove("flash-do", "flash-xanh");
+      void the.offsetWidth; // reset animation
+      the.classList.add("flash-do");
+      setTimeout(() => the.classList.remove("flash-do"), 400);
+    }
     return;
   }
 
@@ -448,6 +462,16 @@ async function xuLyQuetMaVach() {
       } else {
         setStatus("❌ Không tìm thấy: [" + query + "]");
         phatAmThanhLoi(); // ← THÊM
+        // KÍCH HOẠT RUNG TOÀN MÀN HÌNH THAY CHO RUNG Ô INPUT CŨ
+        kichHoatRungLacToanHeThong();
+        // 🚀 HIỆU ỨNG RUNG LẮC Ô TÌM KIẾM AN TOÀN CẤU TRÚC
+        const searchBox = document.getElementById("search-input");
+        if (searchBox) {
+          searchBox.classList.remove("flash-do");
+          void searchBox.offsetWidth; // reset animation
+          searchBox.classList.add("flash-do");
+          setTimeout(() => searchBox.classList.remove("flash-do"), 400);
+        }
       }
     }
   }
@@ -564,6 +588,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
   khoiDong();
 });
+//=================== BẮT ĐẦU HÀM =========================//
+// 🚨 HÀM KÍCH HOẠT RUNG LẮC TOÀN HỆ THỐNG & CHỚP VIỀN ĐỎ KHI CÓ LỖI
+function kichHoatRungLacToanHeThong() {
+  const body = document.body;
+  const vignette = document.getElementById("vignette-layer");
+
+  // Rung lắc toàn bộ màn hình body
+  if (body) {
+    body.classList.remove("screen-shake-cyber");
+    void body.offsetWidth; // Reset animation
+    body.classList.add("screen-shake-cyber");
+    setTimeout(() => body.classList.remove("screen-shake-cyber"), 200);
+  }
+
+  // Chớp viền đỏ khẩn cấp
+  if (vignette) {
+    vignette.classList.remove("flash-vignette");
+    void vignette.offsetWidth; // Reset animation
+    vignette.classList.add("flash-vignette");
+    setTimeout(() => vignette.classList.remove("flash-vignette"), 250);
+  }
+}
+//=================== KẾT THÚC HÀM =========================//
 
 //=================== BẮT ĐẦU HÀM =========================//
 // 🛸 HÀM XỬ LÝ HIỆU ỨNG THẺ BAY CHÍNH XÁC THEO SKU
