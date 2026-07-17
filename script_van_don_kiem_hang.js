@@ -4,9 +4,9 @@
 // =========================================================================
 
 // ── CẤU HÌNH — ĐIỀN VÀO 3 CHỖ NÀY ──
-const SUPABASE_URL = "https://ecctfBảo mậtsimy.supabase.co";
+const SUPABASE_URL = "https://ecctfcqqibuaxfpfsimy.supabase.co";
 const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IBảo mậtn7O-sXkrDZMgJtn9OTA0JsVffs7Tc-FLgYhb4qqI";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjY3RmY3FxaWJ1YXhmcGZzaW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MTkyMjEsImV4cCI6MjA5OTQ5NTIyMX0.zCXn7O-sXkrDZMgJtn9OTA0JsVffs7Tc-FLgYhb4qqI";
 const TABLE_NAME = "van_hanh_tao_don_hang";
 const SYNC_INTERVAL = 30000; // 30 giây
 
