@@ -75,6 +75,7 @@ body {
   flex-shrink: 0;
 }
 
+/* ════ SEARCH BOX PHONG CÁCH SIÊU BẮT MẮT ════ */
 .search-box {
   flex: 1;
   background: #161925;
@@ -85,9 +86,42 @@ body {
   color: #fff;
   font-weight: 700;
   outline: none;
-  transition: border-color 0.2s;
   font-family: inherit;
+
+  /* Thêm đổ bóng chìm để tạo độ sâu cho lòng thanh tìm kiếm */
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+
+  /* Gia tốc mượt mà khi người dùng click vào/ra */
+  transition:
+    border-color 0.3s cubic-bezier(0.165, 0.84, 0.44, 1),
+    background-color 0.3s ease,
+    box-shadow 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
+
+/* ⚡ HIỆU ỨNG NEON MẠCH ĐẬP KHI CLICK VÀO Ô TÌM KIẾM */
+.search-box:focus {
+  border-color: #00e676; /* Đổi sang xanh lục đặc trưng của hệ thống */
+  background-color: #111a24; /* Nền tối sâu hơn để làm nổi bật chữ */
+
+  /* Kích hoạt vòng lặp hiệu ứng hào quang tỏa sáng liên tục */
+  animation: searchNeonPulse 2s infinite ease-in-out;
+}
+
+/* Kịch bản nhịp thở Neon (Tỏa ra ngoài + Đổ ngược vào trong lòng hộp) */
+@keyframes searchNeonPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 15px rgba(0, 230, 118, 0.35),
+      inset 0 0 8px rgba(0, 230, 118, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(0, 230, 118, 0.65),
+      inset 0 0 14px rgba(0, 230, 118, 0.35);
+  }
+}
+/*------------------------------------------------------------*/
 
 .search-box:focus {
   border-color: #00e676;
@@ -148,7 +182,7 @@ body {
   font-family: monospace;
 }
 .don-tien-do {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   color: #f0c040;
   white-space: nowrap;
@@ -159,66 +193,119 @@ body {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
   align-content: start;
   padding-bottom: 8px;
+  /* 🚀 THÊM DÒNG NÀY: Tạo khoảng trống an toàn phía trên để thẻ co giãn không bị che khuất */
+  padding-top: 16px;
+
+  padding-bottom: 8px;
 }
 
-/* ════ THẺ SẢN PHẨM ════ */
+/* ════════════════════════════════════════ */
+/* 🚀 THẺ SẢN PHẨM PHONG CÁCH CYBER TỐI TÂN  */
+/* ════════════════════════════════════════ */
+
 .the-san-pham {
-  background: #121420;
-  border: 2px solid #25293c;
-  border-radius: 12px;
-  padding: 14px;
+  /* Nền gradient chiều sâu, viền mảnh cao cấp */
+  background: linear-gradient(145deg, #121420, #171b2a);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px; /* Bo góc mềm mại hiện đại hơn */
+  padding: 20px;
+
+  /* Sử dụng hiệu ứng gia tốc cubic-bezier giúp co giãn mượt như Apple */
   transition:
-    border-color 0.3s,
-    background 0.3s,
-    box-shadow 0.3s;
+    border-color 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    background 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
   position: relative;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.the-san-pham.trang-thai-chua-du {
-  border-color: #c0392b;
-  background: #1a0f0f;
+/* Lớp phủ phản quang nhẹ ở góc trên bên trái của thẻ */
+.the-san-pham::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle at top left,
+    rgba(255, 255, 255, 0.03),
+    transparent 60%
+  );
+  pointer-events: none;
 }
+
+/* 🔴 Trạng thái chưa đủ: Đỏ trầm Neon */
+.the-san-pham.trang-thai-chua-du {
+  border-color: rgba(231, 76, 60, 0.4);
+  background: linear-gradient(145deg, #1a0f0f, #251212);
+  box-shadow: inset 0 0 12px rgba(231, 76, 60, 0.05);
+}
+
+/* 🟢 Trạng thái đủ hàng: Xanh lục Cyber rực rỡ */
 .the-san-pham.trang-thai-du-hang {
   border-color: #00e676;
-  background: #0f1a10;
-  box-shadow: 0 0 16px rgba(0, 230, 118, 0.2);
+  background: linear-gradient(145deg, #0a1710, #112619);
+  /* Hiệu ứng hào quang phát sáng tỏa ra ngoài và vào trong */
+  box-shadow:
+    0 0 20px rgba(0, 230, 118, 0.15),
+    inset 0 0 15px rgba(0, 230, 118, 0.1);
 }
 
+/* ⚡ Bật hiệu ứng phản hồi chuyển động khi kích hoạt Class Flash (ĐÃ ĐƯỢC FIX LỖI) */
 .the-san-pham.flash-xanh {
-  animation: flashXanh 0.5s ease;
-}
-.the-san-pham.flash-do {
-  animation: flashDo 0.4s ease;
+  /* Đã loại bỏ chữ "ease" thừa để chạy chuẩn xác hàm gia tốc mượt mà */
+  animation: flashXanhCyber 0.55s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-@keyframes flashXanh {
+.the-san-pham.flash-do {
+  /* Hiệu ứng giật lắc cảnh báo chạy theo dạng tuyến tính mạnh mẽ */
+  animation: flashDoCyber 0.4s linear;
+}
+
+/* 🌀 Hiệu ứng quét đúng: Thẻ tự động nẩy nhẹ lên, tỏa ánh sáng Neon cực mạnh */
+@keyframes flashXanhCyber {
   0% {
+    transform: scale(1);
     box-shadow: 0 0 0px rgba(0, 230, 118, 0);
   }
-  40% {
-    box-shadow: 0 0 30px rgba(0, 230, 118, 0.8);
-    background: #0d2e14;
+  35% {
+    transform: scale(1.03); /* Phồng to tạo cảm giác cơ học vật lý */
+    box-shadow: 0 0 35px rgba(0, 230, 118, 0.8);
+    background: #0d3617;
   }
   100% {
-    box-shadow: 0 0 16px rgba(0, 230, 118, 0.2);
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(0, 230, 118, 0.15);
   }
 }
 
-@keyframes flashDo {
-  0% {
-    box-shadow: 0 0 0px rgba(231, 76, 60, 0);
+/* 🌀 Hiệu ứng quét lỗi/trùng: Rung lắc vật lý giật cục sang hai bên cảnh báo */
+@keyframes flashDoCyber {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+    box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
+    background: #3a1414;
   }
   40% {
-    box-shadow: 0 0 24px rgba(231, 76, 60, 0.7);
-    background: #2a0f0f;
+    transform: translateX(5px);
   }
-  100% {
-    box-shadow: 0 0 0px rgba(231, 76, 60, 0);
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(2px);
   }
 }
 
@@ -296,7 +383,7 @@ body {
   background: #0a0c16;
   border-top: 1px solid #1c1f32;
   color: #8892c8;
-  font-size: 12px;
+  font-size: 16px;
   padding: 6px 16px;
   margin: 0 -20px;
   flex-shrink: 0;
@@ -334,7 +421,22 @@ body {
 .cho-quet-icon {
   font-size: 64px;
   opacity: 0.3;
+  /* Thêm dòng chuyển động này */
+  animation: radarPulse 2.5s infinite ease-in-out;
 }
+@keyframes radarPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.45;
+    color: #64b5f6;
+  }
+}
+
 .cho-quet-text {
   font-size: 18px;
   font-weight: 700;
@@ -377,4 +479,32 @@ body {
 .hoan-tat-sub {
   font-size: 14px;
   color: #8892c8;
+}
+/* ════════════════════════════════════════ */
+/* 🛸 HIỆU ỨNG THẺ BAY KHI BẮN ĐÚNG MÃ SKU   */
+/* ════════════════════════════════════════ */
+
+.the-bay-phong-to {
+  position: fixed;
+  z-index: 9999;
+  background: linear-gradient(145deg, #0a1710, #112619);
+  border: 2px solid #00e676;
+  border-radius: 8px;
+  color: #00e676;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 8px 16px;
+  box-shadow: 0 0 25px rgba(0, 230, 118, 0.8);
+  pointer-events: none; /* Không làm kẹt chuột khi đang bay */
+
+  /* Cấu hình gia tốc bay mượt mà và thu nhỏ dần khi tiếp cận mục tiêu */
+  transition:
+    top 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+    left 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+    transform 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.6s ease;
+
+  transform: scale(1);
+  opacity: 1;
 }

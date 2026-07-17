@@ -79,6 +79,7 @@ function updateLocalDb(rows) {
     const seenFingerprints = new Set();
     for (const r of combined) {
       const fp = JSON.stringify([
+        r.id ?? null,
         r.phien_id ?? null,
         r.ma_van_don ?? null,
         r.ma_don_hang ?? null,
@@ -195,7 +196,7 @@ async function traKhanCap(maVanDon) {
 }
 
 // ──────────────────────────────────────────────────
-//  🃏 RENDER THẺ CARD CHO ĐƠN HÀNG
+//  🃏 RENDER THẺ CARD CHO ĐƠN HÀNG — BẢN ĐÃ SỬA CỘNG DỒN SKU
 // ──────────────────────────────────────────────────
 function renderTheCards(rows) {
   const grid = document.getElementById("the-grid");
@@ -218,30 +219,48 @@ function renderTheCards(rows) {
   document.getElementById("don-ma-don-hang").textContent =
     phienHienTai.maDonHang;
 
-  // Tạo thẻ cho từng SKU
+  // 🔄 BƯỚC 1: TẠO BẢNG TẠM ĐỂ CỘNG DỒN SỐ LƯỢNG SKU TRÙNG NHAU
+  const danhSachGop = {};
+
   rows.forEach(function (row) {
     const sku = String(row.sku || "").trim();
-    const canKiem = parseInt(row.so_luong) || 1;
+    const skuKey = chuanHoaSku(sku);
+    const soLuong = parseInt(row.so_luong) || 1;
     const tenSp = row.ten_san_pham || "";
 
-    // Lưu trạng thái vào RAM phiên
-    const skuKey = chuanHoaSku(sku);
+    // Nếu mã SKU này chưa có trong bảng tạm, hãy khởi tạo nó
+    if (!danhSachGop[skuKey]) {
+      danhSachGop[skuKey] = {
+        skuGoc: sku,
+        tenSp: tenSp,
+        tongCanKiem: 0,
+      };
+    }
+    // Lấy số lượng của dòng này cộng dồn vào tổng số lượng cần kiểm
+    danhSachGop[skuKey].tongCanKiem += soLuong;
+  });
+
+  // 🎨 BƯỚC 2: DUYỆT QUA DANH SÁCH ĐÃ GỘP ĐỂ VẼ THẺ VÀ LƯU VÀO RAM PHIÊN
+  Object.keys(danhSachGop).forEach(function (skuKey) {
+    const item = danhSachGop[skuKey];
+
+    // Lưu trạng thái đã được cộng dồn vào RAM phiên
     phienHienTai.theCards[skuKey] = {
-      canKiem: canKiem,
+      canKiem: item.tongCanKiem,
       daKiem: 0,
-      skuGoc: sku,
+      skuGoc: item.skuGoc,
     };
 
-    // Tạo thẻ DOM
+    // Tạo thẻ DOM duy nhất cho mã SKU này dựa trên tổng số lượng
     const the = document.createElement("div");
     the.className = "the-san-pham trang-thai-chua-du";
     the.id = "the-" + skuKey;
     the.innerHTML =
       '<div class="the-sku">' +
-      sku +
+      item.skuGoc +
       "</div>" +
       '<div class="the-ten">' +
-      tenSp +
+      item.tenSp +
       "</div>" +
       '<div class="the-progress-wrap">' +
       '<div class="the-progress-bar" id="bar-' +
@@ -252,7 +271,7 @@ function renderTheCards(rows) {
       '<div class="the-so-luong" id="dem-' +
       skuKey +
       '">0 / ' +
-      canKiem +
+      item.tongCanKiem +
       "</div>" +
       '<div class="the-trang-thai chua-du" id="tag-' +
       skuKey +
@@ -262,6 +281,7 @@ function renderTheCards(rows) {
     grid.appendChild(the);
   });
 
+  // Cập nhật lại thanh tiến độ tổng
   capNhatTienDo();
 }
 
@@ -294,6 +314,9 @@ function quetSku(sku) {
 
   // Cộng thêm 1
   card.daKiem++;
+
+  // 🚀 DÁN DÒNG NÀY VÀO ĐÂY ĐỂ KÍCH HOẠT HIỆU ỨNG BAY
+  taoHieuUngBay(sku, skuHienThi);
 
   // Cập nhật UI thẻ
   const phanTram = Math.round((card.daKiem / card.canKiem) * 100);
@@ -374,7 +397,7 @@ function hienHoanTat() {
       overlay.style.display = "none";
     }, 1000);
   }
-  setStatus("🎉 ĐƠN HÀNG " + phienHienTai.maVanDon + " — ĐÃ ĐỦ TOÀN BỘ HÀNG!");
+  setStatus("🎉 ĐƠN HÀNG: " + phienHienTai.maVanDon + " — ĐÃ ĐỦ TOÀN BỘ HÀNG!");
 }
 
 // ──────────────────────────────────────────────────
@@ -403,7 +426,7 @@ async function xuLyQuetMaVach() {
   if (rows) {
     // Tìm thấy trên RAM
     const tElapsed = (performance.now() - tStart).toFixed(2);
-    setStatus("⚡ RAM: Tìm thấy đơn trong " + tElapsed + "ms");
+    setStatus("⚡ Hệ Thống: Tìm thấy đơn trong " + tElapsed + "ms");
     batDauKiemDon(rows);
   } else {
     // Không có trên RAM → tra cứu khẩn cấp
@@ -472,7 +495,8 @@ function setStatus(msg) {
 function capNhatRamCache() {
   const count = Object.keys(LOCAL_DB).length;
   const el = document.getElementById("ram-cache");
-  if (el) el.textContent = "RAM: " + count.toLocaleString("vi-VN") + " mã";
+  if (el)
+    el.textContent = "MÃ VẬN ĐƠN: " + count.toLocaleString("vi-VN") + " mã";
 }
 
 // ──────────────────────────────────────────────────
@@ -488,7 +512,9 @@ async function khoiDong() {
     document.getElementById("sub-title").textContent = "ĐÃ SẴN SÀNG QUÉT ⚡";
     capNhatRamCache();
     setStatus(
-      "✓ Đã nạp " + result.count.toLocaleString("vi-VN") + " bản ghi vào RAM.",
+      "✓ Đã nạp " +
+        result.count.toLocaleString("vi-VN") +
+        " bản ghi vào hệ thống.",
     );
 
     // Delta sync mỗi 30 giây
@@ -509,7 +535,7 @@ async function khoiDong() {
       choQuetSub.textContent =
         "Đã nạp " +
         Object.keys(LOCAL_DB).length.toLocaleString("vi-VN") +
-        " mã vận đơn vào RAM";
+        " mã vận đơn vào hệ thống";
     }
   } else {
     document.getElementById("sub-title").textContent = "❌ LỖI ĐỒNG BỘ";
@@ -538,3 +564,46 @@ document.addEventListener("DOMContentLoaded", function () {
 
   khoiDong();
 });
+
+//=================== BẮT ĐẦU HÀM =========================//
+// 🛸 HÀM XỬ LÝ HIỆU ỨNG THẺ BAY CHÍNH XÁC THEO SKU
+function taoHieuUngBay(skuKey, skuHienThi) {
+  // Tìm ô tìm kiếm bằng ID search-input đang có sẵn trong hệ thống
+  const searchBox = document.getElementById("search-input");
+  // Tìm chính xác thẻ sản phẩm mục tiêu dựa trên ID được render tự động
+  const targetCard = document.getElementById("the-" + skuKey);
+
+  if (!searchBox || !targetCard) return;
+
+  // 1. Lấy tọa độ thực tế của Ô tìm kiếm và Thẻ đích trên màn hình
+  const boxRect = searchBox.getBoundingClientRect();
+  const cardRect = targetCard.getBoundingClientRect();
+
+  // 2. Tạo ra thẻ bay tạm thời mang phong cách Cyber
+  const flyer = document.createElement("div");
+  flyer.className = "the-bay-phong-to";
+  flyer.textContent = `📦 ${skuHienThi}`; // Hiển thị mã SKU gốc có dấu gạch đầy đủ
+
+  // Đặt vị trí xuất phát ngay tại vị trí ô Search Box
+  flyer.style.left = `${boxRect.left + 20}px`;
+  flyer.style.top = `${boxRect.top + 5}px`;
+
+  document.body.appendChild(flyer);
+
+  // 3. Kích hoạt hoạt ảnh lao thẳng vào tâm thẻ sản phẩm
+  requestAnimationFrame(() => {
+    // Tính toán tọa độ để viên đạn rơi vào đúng giữa tâm thẻ sản phẩm
+    flyer.style.left = `${cardRect.left + cardRect.width / 2 - 60}px`;
+    flyer.style.top = `${cardRect.top + cardRect.height / 2 - 15}px`;
+
+    // Thu nhỏ siêu nhỏ và biến mất khi chạm vào bề mặt thẻ
+    flyer.style.transform = "scale(0.1)";
+    flyer.style.opacity = "0";
+  });
+
+  // 4. Dọn dẹp thẻ bay sau khi hoàn thành hành trình (0.6 giây)
+  setTimeout(() => {
+    flyer.remove();
+  }, 600);
+}
+//========================== KẾT THÚC HÀM ================================//
