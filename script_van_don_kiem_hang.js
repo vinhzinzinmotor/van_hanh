@@ -13,6 +13,13 @@ const SYNC_INTERVAL = 30000; // 30 giây
 // ── TẢI SẴN ÂM THANH KHI TRANG MỞ ──
 const amThanhHoanTat = new Audio("sound/hoan_thanh.mp3");
 amThanhHoanTat.preload = "auto";
+// ── TẢI SẴN ÂM THANH LỖI ──
+const amThanhLoi = new Audio("sound/error.mp3");
+amThanhLoi.preload = "auto";
+function phatAmThanhLoi() {
+  amThanhLoi.currentTime = 0;
+  amThanhLoi.play().catch(function () {});
+}
 
 const HEADERS = {
   apikey: SUPABASE_KEY,
@@ -257,6 +264,7 @@ function quetSku(sku) {
   if (!card) {
     // SKU không thuộc đơn này
     setStatus("⚠️ SKU [" + skuHienThi + "] không có trong đơn hàng đang kiểm!");
+    phatAmThanhLoi(); // ← THÊM
     const the = document.getElementById("the-" + sku);
     if (the) {
       the.classList.remove("flash-xanh");
@@ -269,6 +277,7 @@ function quetSku(sku) {
   if (card.daKiem >= card.canKiem) {
     // Đã đủ rồi — cảnh báo quét thừa
     setStatus("⚠️ SKU [" + skuHienThi + "] đã đủ số lượng rồi! Kiểm tra lại.");
+    phatAmThanhLoi(); // ← THÊM
     return;
   }
 
@@ -396,6 +405,7 @@ async function xuLyQuetMaVach() {
         quetSku(queryKey);
       } else {
         setStatus("❌ Không tìm thấy: [" + query + "]");
+        phatAmThanhLoi(); // ← THÊM
       }
     }
   }
