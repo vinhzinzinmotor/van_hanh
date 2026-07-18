@@ -1,0 +1,39 @@
+{
+  "thong_ke_sku": {
+    "64302K2TV00": {
+      "da_kiem": 2,
+      "sku_goc": "64302-K2T-V00",
+      "can_kiem": 1,
+      "trang_thai": "THUA_SO_LUONG"
+    },
+    "64300K2TV00ZH": {
+      "da_kiem": 1,
+      "sku_goc": "64300-K2T-V00ZH",
+      "can_kiem": 1,
+      "trang_thai": "DU_HANG"
+    }
+  },
+  "lich_su_thao_tac": [
+    {
+      "sku": "64302K2TV00",
+      "sku_goc": "64302-K2T-V00",
+      "tin_nhan": "Thành công (1/1)",
+      "hanh_dong": "QUET_THANH_CONG",
+      "thoi_gian": "2026-07-18T10:42:18.939Z"
+    },
+    {
+      "sku": "64300K2TV00ZH",
+      "sku_goc": "64300-K2T-V00ZH",
+      "tin_nhan": "Thành công (1/1)",
+      "hanh_dong": "QUET_THANH_CONG",
+      "thoi_gian": "2026-07-18T10:42:22.450Z"
+    },
+    {
+      "sku": "64302K2TV00",
+      "sku_goc": "64302-K2T-V00",
+      "tin_nhan": "Cảnh báo: quét thừa (2/1)",
+      "hanh_dong": "QUET_THUA_HANG",
+      "thoi_gian": "2026-07-18T10:43:37.587Z"
+    }
+  ]
+}

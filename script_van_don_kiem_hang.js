@@ -382,7 +382,7 @@ function quetSku(sku) {
   const tatCa = Object.values(phienHienTai.theCards);
   const dauDu = tatCa.filter((c) => c.daKiem >= c.canKiem).length;
   if (dauDu === tatCa.length && tatCa.length > 0) {
-    hienHoanTat();
+    window.hienHoanTat();
   }
 }
 
@@ -430,7 +430,7 @@ async function xuLyQuetMaVach() {
   // ── Nếu đang có đơn và query là SKU thuộc đơn → kiểm hàng
   const queryKey = chuanHoaSku(query);
   if (phienHienTai.maVanDon && phienHienTai.theCards[queryKey] !== undefined) {
-    quetSku(queryKey);
+    window.quetSku(queryKey);
     return;
   }
 
@@ -441,7 +441,7 @@ async function xuLyQuetMaVach() {
     // Tìm thấy trên RAM
     const tElapsed = (performance.now() - tStart).toFixed(2);
     setStatus("⚡ Hệ Thống: Tìm thấy đơn trong " + tElapsed + "ms");
-    batDauKiemDon(rows);
+    window.batDauKiemDon(rows);
   } else {
     // Không có trên RAM → tra cứu khẩn cấp
     setStatus("🔍 Không có trên RAM. Đang truy vấn Internet...");
@@ -450,7 +450,7 @@ async function xuLyQuetMaVach() {
     if (rows && rows.length > 0) {
       updateLocalDb(rows);
       capNhatRamCache();
-      batDauKiemDon(LOCAL_DB[query] || rows);
+      window.batDauKiemDon(LOCAL_DB[query] || rows);
       setStatus("✓ Đã tải đơn từ Internet.");
     } else {
       // Không phải mã vận đơn → thử xem có phải SKU đang kiểm không
@@ -458,7 +458,7 @@ async function xuLyQuetMaVach() {
         phienHienTai.maVanDon &&
         phienHienTai.theCards[queryKey] !== undefined
       ) {
-        quetSku(queryKey);
+        window.quetSku(queryKey);
       } else {
         setStatus("❌ Không tìm thấy: [" + query + "]");
         phatAmThanhLoi(); // ← THÊM
@@ -492,7 +492,10 @@ function batDauKiemDon(rows) {
 //  🗑️ XÓA GIAO DIỆN
 // ──────────────────────────────────────────────────
 function xoaGiaoDien() {
-  phienHienTai = { maVanDon: null, maDonHang: null, theCards: {} };
+  // Sửa thành — reset từng thuộc tính, giữ nguyên tham chiếu
+  phienHienTai.maVanDon = null;
+  phienHienTai.maDonHang = null;
+  phienHienTai.theCards = {};
 
   document.getElementById("the-grid").innerHTML = "";
   document.getElementById("don-hien-tai").style.display = "none";
@@ -654,3 +657,17 @@ function taoHieuUngBay(skuKey, skuHienThi) {
   }, 600);
 }
 //========================== KẾT THÚC HÀM ================================//
+// =========================================================================
+// EXPOSE CÁC HÀM CHÍNH RA WINDOW
+// Để script_lich_su_kiem_hang.js có thể nghe lóng qua Proxy Pattern
+// =========================================================================
+window.batDauKiemDon = batDauKiemDon;
+window.quetSku = quetSku;
+window.hienHoanTat = hienHoanTat;
+// Sau — dùng getter để luôn trả về object hiện tại
+Object.defineProperty(window, "phienHienTai", {
+  get: function () {
+    return phienHienTai;
+  },
+  configurable: true,
+});
