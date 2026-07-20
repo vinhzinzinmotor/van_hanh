@@ -568,3 +568,175 @@ body {
   }
 }
 /*========================================================================*/
+/* ========================================================================= 
+   TỐI ƯU RESPONSIVE CHO ĐIỆN THOẠI & THIẾT BỊ PDA MÀN HÌNH NHỎ (MAX-WIDTH: 600px)
+   ========================================================================= */
+@media (max-width: 600px) {
+  body {
+    padding: 10px 12px 0 12px; /* Giảm padding viền ngoài để tăng diện tích hiển thị */
+    height: 100dvh; /* Sử dụng Dynamic VH để chống tràn do thanh công cụ trình duyệt mobile */
+  }
+
+  /* ════ HEADER HÀNG DỌC ════ */
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .header-left {
+    text-align: center;
+  }
+  .header > div:last-child {
+    display: flex;
+    justify-content: space-between; /* Đẩy nút Back và RAM sang 2 bên */
+    width: 100%;
+  }
+
+  /* ════ Ô TÌM KIẾM ════ */
+  .search-row {
+    margin-bottom: 8px;
+    gap: 6px;
+  }
+  .search-box {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .search-box::placeholder {
+    font-size: 11px; /* Tránh placeholder quá dài làm mất chữ trên mobile */
+  }
+  .btn-clear-table {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  /* ════ THÔNG TIN ĐƠN HÀNG ════ */
+  .don-hien-tai {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+  }
+  .don-info {
+    justify-content: space-between; /* Tách biệt mã vận đơn và mã đơn hàng */
+  }
+  .don-tien-do {
+    text-align: center;
+    font-size: 14px;
+    border-top: 1px dashed #25293c;
+    padding-top: 6px;
+    margin-top: 2px;
+  }
+
+  /* ════ LƯỚI THẺ HÀNG CO GIÃN THÔNG MINH ════ */
+  .the-grid {
+    /* Hạ minmax xuống 240px giúp các máy màn hình nhỏ không bị kích tràn */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .the-san-pham {
+    padding: 14px; /* Thu gọn lòng thẻ */
+    border-radius: 12px;
+  }
+
+  .the-sku {
+    font-size: 18px; /* Giảm size chữ SKU để tránh bị break dòng quá tội */
+    margin-bottom: 2px;
+  }
+
+  .the-ten {
+    font-size: 11px;
+    -webkit-line-clamp: 1; /* Điện thoại chỉ nên hiện 1 dòng tên sản phẩm để tiết kiệm không gian */
+    margin-bottom: 8px;
+  }
+
+  .the-so-luong {
+    font-size: 18px;
+  }
+
+  /* ════ HỘP HOÀN TẤT FLOATING RE-SIZE ════ */
+  .hoan-tat-box {
+    padding: 30px 20px;
+    width: 85%;
+    max-width: 320px;
+    border-radius: 16px;
+  }
+  .hoan-tat-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+  .hoan-tat-text {
+    font-size: 26px;
+  }
+
+  /* ════ THANH TRẠNG THÁI ĐÁY ════ */
+  .status-bar {
+    margin: 0 -12px; /* Khớp với padding mới của body */
+    font-size: 13px;
+    padding: 4px 12px;
+  }
+}
+
+/* ========================================================================= */
+/* ========================================================================= 
+   TỐI ƯU ĐẶC BIỆT CHO MÀN HÌNH SIÊU NHỎ VÀ MÁY QUÉT PDA (WIDTH < 375px)
+   ========================================================================= */
+@media (max-width: 375px) {
+  /* 1. Ép layout thẻ hàng co giãn 100% theo chiều ngang thiết bị */
+  .the-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    padding-top: 6px !important;
+  }
+
+  /* 2. Thu nhỏ padding bên trong thẻ để giải phóng không gian hiển thị */
+  .the-san-pham {
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+  }
+
+  /* 3. Hạ size chữ các thành phần cốt lõi để không kích kích thước thẻ */
+  .the-sku {
+    font-size: 16px !important; /* Giữ chữ SKU vừa vặn, không bị xuống dòng lỗi */
+    margin-bottom: 2px !important;
+  }
+
+  .the-ten {
+    font-size: 11px !important;
+    -webkit-line-clamp: 1 !important; /* Ép cứng hiển thị đúng 1 dòng tên sản phẩm */
+    margin-bottom: 6px !important;
+  }
+
+  .the-so-luong {
+    font-size: 16px !important; /* Thu nhỏ bộ đếm số lượng kiểm hàng */
+  }
+
+  .the-trang-thai {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* 4. Khử tràn viền ngang ở khu vực thông tin đơn hàng */
+  .don-hien-tai {
+    padding: 6px 10px !important;
+    gap: 4px !important;
+  }
+
+  .don-info {
+    font-size: 11px !important;
+  }
+
+  .don-value {
+    font-size: 12px !important;
+  }
+
+  .don-tien-do {
+    font-size: 12px !important;
+    white-space: normal !important; /* Cho phép xuống dòng linh hoạt khi màn hình quá hẹp */
+    text-align: center !important;
+    width: 100% !important;
+  }
+}
