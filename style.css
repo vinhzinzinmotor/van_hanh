@@ -703,8 +703,9 @@ td[tabindex="0"]:focus {
   table.inv-table th {
     border: 2px solid #111 !important;
     padding: 6px !important;
-    background: #e4e4e4 !important;
+    background: #ffffff !important;
     color: #000 !important;
+    font-weight: normal !important; /* ← THÊM DÒNG NÀY ĐỂ BỎ IN ĐẬM */
   }
   table.inv-table td {
     border: 1px solid #111 !important;
@@ -741,12 +742,12 @@ td[tabindex="0"]:focus {
   table.inv-table th:nth-child(3),
   table.inv-table td:nth-child(3) {
     font-size: 15px;
-    font-weight: bold;
+    font-weight: normal !important;
   }
   table.inv-table th:nth-child(4),
   table.inv-table td:nth-child(4) {
     font-size: 20px !important;
-    font-weight: bold;
+    font-weight: normal;
     text-align: center;
   }
   .circle-qty {
@@ -758,7 +759,7 @@ td[tabindex="0"]:focus {
     border: 2px solid #000;
     border-radius: 50%;
     font-size: 15px;
-    font-weight: bold;
+    font-weight: normal !important; /*Bỏ In Đậm Cột SL*/
   }
   .inv-total {
     text-align: right;

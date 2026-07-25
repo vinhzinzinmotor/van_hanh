@@ -1388,7 +1388,7 @@ btnTaoIn.addEventListener("click", function () {
         displayQty = `<span class="circle-qty">${it.qty}</span>`;
       }
 
-      template += `<tr><td class="i-sku">${it.sku}</td><td>${it.name}</td><td><b>${it.loc}</b></td><td style="text-align:center; font-weight:bold;">${displayQty}</td><td></td></tr>`;
+      template += `<tr><td class="i-sku">${it.sku}</td><td>${it.name}</td><td>${it.loc}</td><td style="text-align:center; font-weight:bold;">${displayQty}</td><td></td></tr>`;
     });
 
     template += `</tbody></table>
