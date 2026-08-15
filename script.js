@@ -1378,7 +1378,7 @@ btnTaoIn.addEventListener("click", function () {
           </div>
         </div>
         <table class="inv-table">
-          <thead><tr><th>Mã SKU</th><th>Tên Sản Phẩm</th><th>Vị Trí Kho</th><th>SL</th><th>Ghi Chú</th></tr></thead>
+          <thead><tr><th>SL</th><th>Mã SKU</th><th>Tên Sản Phẩm</th><th>Vị Trí Kho</th><th>Ghi Chú</th></tr></thead>
           <tbody>`;
 
     don.items.forEach((it) => {
@@ -1388,7 +1388,7 @@ btnTaoIn.addEventListener("click", function () {
         displayQty = `<span class="circle-qty">${it.qty}</span>`;
       }
 
-      template += `<tr><td class="i-sku">${it.sku}</td><td>${it.name}</td><td>${it.loc}</td><td style="text-align:center; font-weight:bold;">${displayQty}</td><td></td></tr>`;
+      template += `<tr><td style="text-align:center;">${displayQty}</td><td class="i-sku">${it.sku}</td><td>${it.name}</td><td>${it.loc}</td><td></td></tr>`;
     });
 
     template += `</tbody></table>
@@ -1534,17 +1534,40 @@ function copyDonHang(btn) {
   btn.innerText = "⏳ Đang tạo...";
   btn.disabled = true;
 
-  // Tạo bản sao vô hình với chiều rộng 400px (phù hợp điện thoại)
+  // Tạo bản sao vô hình — để tự nhiên, không giới hạn chiều rộng
   var clone = box.cloneNode(true);
   clone.style.position = "fixed";
   clone.style.top = "-9999px";
   clone.style.left = "-9999px";
-  clone.style.width = "420px";
-  clone.style.maxWidth = "420px";
+  clone.style.width = "860px"; // ← đặt rộng hơn để chứa tên dài
+  clone.style.maxWidth = "860px"; // ← giữ cố định để html2canvas render đúng
 
-  // Ẩn nút Copy trong bản sao để không xuất hiện trong ảnh
+  // Ẩn nút Copy trong bản sao
   var cloneBtn = clone.querySelector(".btn-copy-don");
   if (cloneBtn) cloneBtn.style.display = "none";
+
+  // Tăng kích thước cột SL chỉ trong bản clone chụp ảnh
+  var cacOSL = clone.querySelectorAll(
+    "table.inv-table td:nth-child(1), table.inv-table th:nth-child(1)",
+  );
+  cacOSL.forEach(function (o) {
+    o.style.fontSize = "22px"; // ← tăng cỡ chữ
+    o.style.fontWeight = "500"; // ← đậm hơn
+    o.style.minWidth = "60px"; // ← cột rộng hơn
+    o.style.textAlign = "center";
+  });
+  // Tăng kích thước vòng tròn số lượng cho khớp với fontSize mới
+  var cacVongTron = clone.querySelectorAll("table.inv-table .circle-qty");
+  cacVongTron.forEach(function (o) {
+    o.style.display = "inline-flex"; // ← THÊM: dùng flexbox căn giữa
+    o.style.alignItems = "center"; // ← THÊM: căn giữa dọc
+    o.style.justifyContent = "center"; // ← THÊM: căn giữa ngang
+    o.style.width = "40px";
+    o.style.height = "40px";
+    o.style.lineHeight = "normal"; // ← ĐỔI: bỏ lineHeight cũ, để flexbox xử lý
+    o.style.fontSize = "20px";
+    o.style.fontWeight = "900";
+  });
 
   document.body.appendChild(clone);
 
@@ -1556,7 +1579,31 @@ function copyDonHang(btn) {
     .then(function (canvas) {
       document.body.removeChild(clone);
 
-      canvas.toBlob(function (blob) {
+      // ── SCALE ẢNH VỀ CHIỀU RỘNG MỤC TIÊU 860px ──
+      var chieuRongMucTieu = 860;
+      var chieuRongGoc = canvas.width;
+      var chieuCaoGoc = canvas.height;
+
+      var tyLeScale = chieuRongMucTieu / chieuRongGoc;
+
+      // Nếu ảnh đã nhỏ hơn hoặc bằng 860px thì giữ nguyên, không phóng to
+      if (tyLeScale >= 1) {
+        tyLeScale = 1;
+      }
+
+      var chieuRongMoi = Math.round(chieuRongGoc * tyLeScale);
+      var chieuCaoMoi = Math.round(chieuCaoGoc * tyLeScale);
+
+      // Tạo canvas mới với kích thước đã scale
+      var canvasMoi = document.createElement("canvas");
+      canvasMoi.width = chieuRongMoi;
+      canvasMoi.height = chieuCaoMoi;
+
+      var ctx = canvasMoi.getContext("2d");
+      ctx.drawImage(canvas, 0, 0, chieuRongMoi, chieuCaoMoi);
+
+      // Copy canvas mới lên clipboard
+      canvasMoi.toBlob(function (blob) {
         navigator.clipboard
           .write([new ClipboardItem({ "image/png": blob })])
           .then(function () {
