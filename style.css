@@ -738,7 +738,7 @@ td[tabindex="0"]:focus {
   table.inv-table td.i-sku {
     font-size: 15px !important;
     font-weight: bold !important;
-    font-family: monospace;
+    font-family: "Arial", sans-serif;
   }
   table.inv-table th:nth-child(4),
   table.inv-table td:nth-child(4) {
