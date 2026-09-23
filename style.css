@@ -314,7 +314,8 @@ td.dang-chon {
 }
 
 td.i-sku {
-  font-family: monospace;
+  font-family:
+    "Arial", sans-serif; /* Thay đổi font chữ cột Mã SKU số 0 không có dấu gạch chéo ở giữa */
   font-size: 14px;
   font-weight: bold;
   color: #0b4fc4;

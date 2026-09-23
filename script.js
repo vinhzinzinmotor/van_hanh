@@ -1487,7 +1487,7 @@ function khoiTaoKeoRongCot() {
 
     // Gắn tay kéo vào từng cột
     thCoTheKeo.forEach(function (th) {
-      //th.style.position = "relative";
+      //th.style.position = "relative"; // Thay đổi để cố định vị trí dòng tiêu đề khi scroll
       var existing = th.querySelector(".col-resizer");
       if (existing) existing.remove();
 
