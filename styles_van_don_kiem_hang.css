@@ -15,7 +15,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
+  /*overflow: hidden;*/
   padding: 16px 20px 0 20px;
   gap: 0;
 }
@@ -191,6 +191,7 @@ body {
 /* ════ LƯỚI THẺ SẢN PHẨM ════ */
 .the-grid {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
