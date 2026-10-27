@@ -87,6 +87,7 @@ body {
   font-weight: 700;
   outline: none;
   font-family: inherit;
+  min-width: 0; /* Cho phép ô quét co lại trên màn hẹp, không đẩy nút Xóa ra ngoài */
 
   /* Thêm đổ bóng chìm để tạo độ sâu cho lòng thanh tìm kiếm */
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
@@ -195,6 +196,9 @@ body {
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* 🛠️ FIX: Mỗi hàng luôn cao đúng bằng nội dung thẻ. Nếu thiếu dòng này, khi màn hình thấp
+     trình duyệt sẽ ép bẹp thẻ (vì thẻ có overflow: hidden) và che mất tên/thanh tiến độ/số lượng */
+  grid-auto-rows: max-content;
   gap: 12px;
   align-content: start;
   padding-bottom: 8px;
@@ -225,6 +229,12 @@ body {
   position: relative;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  /* 📐 Biến thẻ thành "khung tham chiếu": chữ bên trong co giãn theo bề rộng THẺ (đơn vị cqi) */
+  container-type: inline-size;
+
+  /* 📦 Thu nhỏ cả "thùng hàng" (chữ, khoảng cách, viền) — tỷ lệ do script_vua_man_hinh.js tính */
+  zoom: var(--ty-le, 1);
 }
 
 /* Lớp phủ phản quang nhẹ ở góc trên bên trái của thẻ */
@@ -356,6 +366,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap; /* Thẻ quá hẹp thì nhãn trạng thái tự xuống dòng thay vì bị cắt */
+  gap: 4px 8px;
 }
 .the-so-luong {
   font-size: 20px;
@@ -368,6 +380,7 @@ body {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .the-trang-thai.chua-du {
@@ -643,19 +656,27 @@ body {
     border-radius: 12px;
   }
 
+  /* Chữ co giãn thông minh: dòng 1 (vw) cho máy đời cũ, dòng 2 (cqi = % bề rộng thẻ) cho máy mới */
   .the-sku {
-    font-size: 18px; /* Giảm size chữ SKU để tránh bị break dòng quá tội */
+    font-size: clamp(13px, 4.5vw, 22px);
+    font-size: clamp(13px, 7.5cqi, 22px); /* ~22 ký tự SKU vừa 1 dòng, dài hơn thì tự xuống dòng */
     margin-bottom: 2px;
   }
 
   .the-ten {
-    font-size: 11px;
-    -webkit-line-clamp: 1; /* Điện thoại chỉ nên hiện 1 dòng tên sản phẩm để tiết kiệm không gian */
+    font-size: clamp(11px, 3.4vw, 13px);
+    font-size: clamp(11px, 4.6cqi, 13px);
+    /* Hiện ĐẦY ĐỦ tên sản phẩm, tự xuống dòng thay vì cắt bằng "..." */
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    overflow-wrap: anywhere;
     margin-bottom: 8px;
   }
 
   .the-so-luong {
-    font-size: 18px;
+    font-size: clamp(15px, 5vw, 20px);
+    font-size: clamp(15px, 8cqi, 20px);
   }
 
   /* ════ HỘP HOÀN TẤT FLOATING RE-SIZE ════ */
@@ -699,25 +720,43 @@ body {
     border-radius: 10px !important;
   }
 
-  /* 3. Hạ size chữ các thành phần cốt lõi để không kích kích thước thẻ */
-  .the-sku {
-    font-size: 16px !important; /* Giữ chữ SKU vừa vặn, không bị xuống dòng lỗi */
-    margin-bottom: 2px !important;
-  }
-
+  /* 3. Cỡ chữ SKU / tên / số lượng đã tự co giãn theo bề rộng thẻ (khai báo ở khối 600px) */
   .the-ten {
-    font-size: 11px !important;
-    -webkit-line-clamp: 1 !important; /* Ép cứng hiển thị đúng 1 dòng tên sản phẩm */
     margin-bottom: 6px !important;
   }
 
-  .the-so-luong {
-    font-size: 16px !important; /* Thu nhỏ bộ đếm số lượng kiểm hàng */
+  .the-progress-wrap {
+    height: 6px;
+    margin-bottom: 6px;
   }
 
   .the-trang-thai {
     font-size: 10px !important;
     padding: 2px 6px !important;
+  }
+
+  /* Header gọn lại để nhường chỗ cho thẻ hàng */
+  .title {
+    font-size: clamp(14px, 5.5vw, 20px);
+  }
+  .header {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .header > div:last-child {
+    gap: 6px !important;
+  }
+  .ram-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+  .btn-back {
+    font-size: 11px;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
+  .btn-clear-table {
+    padding: 8px 10px;
   }
 
   /* 4. Khử tràn viền ngang ở khu vực thông tin đơn hàng */
@@ -740,4 +779,177 @@ body {
     text-align: center !important;
     width: 100% !important;
   }
+}
+
+/* =========================================================================
+   MÀN HÌNH THẤP (PDA, ĐIỆN THOẠI XOAY NGANG, KHI BÀN PHÍM ẢO BẬT LÊN)
+   Thu gọn phần đầu trang để nhường tối đa chiều cao cho lưới thẻ hàng
+   ========================================================================= */
+@media (max-height: 560px) {
+  body {
+    padding-top: 6px;
+  }
+
+  .header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-bottom: 6px;
+  }
+  .header-left {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    text-align: left;
+  }
+  .title {
+    font-size: 14px;
+  }
+  .subtitle {
+    font-size: 10px;
+    margin-top: 0;
+  }
+  .header > div:last-child {
+    width: auto;
+    gap: 6px !important;
+    margin-left: auto;
+  }
+  .ram-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .btn-back {
+    font-size: 11px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+
+  .search-row {
+    margin-bottom: 6px;
+  }
+  .search-box {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .btn-clear-table {
+    padding: 6px 10px;
+  }
+
+  .don-hien-tai {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    padding: 4px 10px;
+    margin-bottom: 6px;
+  }
+  .don-label {
+    font-size: 11px;
+  }
+  .don-value {
+    font-size: 12px;
+  }
+  .don-tien-do {
+    font-size: 12px;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .the-grid {
+    padding-top: 6px;
+    gap: 6px;
+  }
+
+  .status-bar {
+    font-size: 12px;
+    padding: 3px 12px;
+  }
+}
+
+/* =========================================================================
+   THU GỌN ĐẦU TRANG — khi thẻ phải thu nhỏ nhiều mới vừa 1 màn hình
+   (class do script_vua_man_hinh.js bật/tắt). Ẩn tiêu đề + bộ đếm mã vận đơn,
+   các dòng còn lại ép mỏng để nhường tối đa chiều cao cho lưới thẻ.
+   ========================================================================= */
+body.gon-dau-trang {
+  padding-top: 4px;
+}
+
+body.gon-dau-trang .title,
+body.gon-dau-trang .ram-badge {
+  display: none;
+}
+
+body.gon-dau-trang .header {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+body.gon-dau-trang .header-left {
+  text-align: left;
+}
+body.gon-dau-trang .subtitle {
+  font-size: 10px;
+  margin-top: 0;
+}
+body.gon-dau-trang .header > div:last-child {
+  width: auto;
+  margin-left: auto;
+}
+body.gon-dau-trang .btn-back {
+  font-size: 10px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+body.gon-dau-trang .search-row {
+  margin-bottom: 4px;
+  gap: 4px;
+}
+body.gon-dau-trang .search-box {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+body.gon-dau-trang .btn-clear-table {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+body.gon-dau-trang .don-hien-tai {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 8px !important;
+  padding: 3px 8px !important;
+  margin-bottom: 4px;
+}
+body.gon-dau-trang .don-info {
+  gap: 2px 4px;
+  justify-content: flex-start;
+}
+body.gon-dau-trang .don-label {
+  font-size: 10px;
+}
+body.gon-dau-trang .don-value {
+  font-size: 11px !important;
+}
+body.gon-dau-trang .don-tien-do {
+  font-size: 11px !important;
+  width: auto !important;
+  text-align: left !important;
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+body.gon-dau-trang .the-grid {
+  padding-top: 4px !important;
+  padding-bottom: 4px;
+}
+
+body.gon-dau-trang .status-bar {
+  font-size: 11px;
+  padding: 2px 12px;
 }
