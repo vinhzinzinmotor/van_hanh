@@ -103,7 +103,13 @@
     return tot;
   }
 
+  let coDaCan = ""; // Cỡ cửa sổ lúc căn chỉnh gần nhất
+  function coCuaSo() {
+    return window.innerWidth + "x" + window.innerHeight;
+  }
+
   function canChinh() {
+    coDaCan = coCuaSo();
     const soThe = grid.children.length;
 
     document.body.classList.remove("gon-dau-trang");
@@ -153,9 +159,16 @@
     if (doiThe || !vuaKhit()) lenLich();
   }).observe(grid, { childList: true, subtree: true, characterData: true });
 
-  window.addEventListener("resize", lenLich);
+  // Chỉ căn lại khi cửa sổ THẬT SỰ đổi cỡ. Lúc căn chỉnh, thanh cuộn có thể thoáng
+  // hiện rồi ẩn → trình duyệt báo "resize" giả → nếu căn lại sẽ lặp vô tận (treo trang).
+  // innerWidth/innerHeight tính cả thanh cuộn nên không đổi theo kiểu báo giả này.
+  function khiDoiCo() {
+    if (coCuaSo() !== coDaCan) lenLich();
+  }
+
+  window.addEventListener("resize", khiDoiCo);
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", lenLich);
+    window.visualViewport.addEventListener("resize", khiDoiCo);
   }
 
   lenLich();

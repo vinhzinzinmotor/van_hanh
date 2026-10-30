@@ -32,6 +32,12 @@
       </div>
       <div style="display: flex; gap: 12px; align-items: center">
         <div class="ram-badge" id="ram-cache">MÃ VẬN ĐƠN: 0 mã</div>
+        <button
+          class="btn-back"
+          onclick="window.location.href = 'tra_cuu_kiem_hang.html'"
+        >
+          📜 Lịch sử
+        </button>
         <button class="btn-back" onclick="window.location.href = 'index.html'">
           🔙 Trang chủ
         </button>
@@ -91,7 +97,9 @@
     <script src="script_van_don_kiem_hang.js"></script>
     <!-- 2. CHẠY FILE LỊCH SỬ SAU ĐỂ NGHE LÓNG -->
     <script src="script_lich_su_kiem_hang.js"></script>
-    <!-- 3. TỰ CO THẺ VỪA MÀN HÌNH (chỉ giao diện, không đụng luồng kiểm hàng) -->
+    <!-- 3. NHẬT KÝ KIỂM HÀNG MỚI (chỉ ghi thêm) — chạy song song với lịch sử cũ -->
+    <script src="script_nhat_ky_kiem_hang.js"></script>
+    <!-- 4. TỰ CO THẺ VỪA MÀN HÌNH (chỉ giao diện, không đụng luồng kiểm hàng) -->
     <script src="script_vua_man_hinh.js"></script>
   </body>
 </html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lịch Sử Kiểm Hàng</title>
+    <link rel="icon" type="image/png" href="logo.png" />
+    <meta name="theme-color" content="#0d0f14" />
+    <link rel="stylesheet" href="styles_tra_cuu_kiem_hang.css" />
+  </head>
+  <body>
+    <!-- ════ HEADER ════ -->
+    <header class="tc-header">
+      <div>
+        <div class="tc-title">LỊCH SỬ KIỂM HÀNG</div>
+        <div class="tc-subtitle">
+          Nhật ký chỉ ghi thêm · giờ máy chủ · niêm phong chuỗi
+        </div>
+      </div>
+      <button
+        class="tc-btn tc-btn-phu"
+        onclick="window.location.href = 'van_don_kiem_hang.html'"
+      >
+        ⚡ Kiểm hàng
+      </button>
+    </header>
+
+    <!-- ════ THANH TAB ════ -->
+    <nav class="tc-tabs" role="tablist">
+      <button class="tc-tab" data-tab="tra-don" role="tab">🔍 Tra đơn</button>
+      <button class="tc-tab" data-tab="nhan-vien" role="tab">👤 Nhân viên</button>
+      <button class="tc-tab" data-tab="tong-quan" role="tab">📊 Tổng quan</button>
+      <button class="tc-tab" data-tab="bat-thuong" role="tab">🛡️ Bất thường</button>
+    </nav>
+
+    <!-- ════ BỘ LỌC NGÀY (dùng chung cho Nhân viên / Tổng quan / Bất thường) ════ -->
+    <div class="tc-bo-loc" id="bo-loc-ngay">
+      <label>Từ <input type="date" id="tu-ngay" /></label>
+      <label>Đến <input type="date" id="den-ngay" /></label>
+      <div class="tc-nhom-nut">
+        <button class="tc-chip" data-so-ngay="1">Hôm nay</button>
+        <button class="tc-chip" data-so-ngay="7">7 ngày</button>
+        <button class="tc-chip" data-so-ngay="30">30 ngày</button>
+      </div>
+      <button class="tc-btn" id="nut-xem">Xem</button>
+    </div>
+
+    <!-- ════ TAB 1: TRA ĐƠN ════ -->
+    <section class="tc-tab-noi-dung" id="tab-tra-don">
+      <div class="tc-tim-kiem">
+        <input
+          type="text"
+          id="o-ma-van-don"
+          placeholder="Nhập hoặc bắn mã vận đơn / mã đơn hàng..."
+          autocomplete="off"
+        />
+        <button class="tc-btn" id="nut-tra">Tra cứu</button>
+      </div>
+      <div id="kq-tra-don"></div>
+    </section>
+
+    <!-- ════ TAB 2: NHÂN VIÊN ════ -->
+    <section class="tc-tab-noi-dung" id="tab-nhan-vien">
+      <div id="kq-nhan-vien"></div>
+    </section>
+
+    <!-- ════ TAB 3: TỔNG QUAN ════ -->
+    <section class="tc-tab-noi-dung" id="tab-tong-quan">
+      <div id="kq-tong-quan"></div>
+    </section>
+
+    <!-- ════ TAB 4: BẤT THƯỜNG & NIÊM PHONG ════ -->
+    <section class="tc-tab-noi-dung" id="tab-bat-thuong">
+      <div id="kq-bat-thuong"></div>
+    </section>
+
+    <div class="tc-trang-thai" id="trang-thai"></div>
+    <div class="tc-tooltip" id="tooltip" hidden></div>
+
+    <script src="script_tra_cuu_kiem_hang.js"></script>
+  </body>
+</html>
