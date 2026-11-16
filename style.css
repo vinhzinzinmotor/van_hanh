@@ -938,3 +938,11 @@ td[tabindex="0"]:focus {
   font-weight: bold;
   width: 50px;
 }
+/* ── ĐIỆN THOẠI (màn hình rộng ≤ 768px): lướt ngang thanh tab, nút tự xuống dòng. Máy tính KHÔNG đổi ── */
+@media screen and (max-width: 768px) {
+  .gs-tab-bar { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .gs-tab-bar::-webkit-scrollbar { display: none; }
+  .gs-tab { flex-shrink: 0; font-size: 13px; padding: 0 10px; }
+  .actions-bar { flex-wrap: wrap; }
+  .actions-bar button { padding: 9px 12px; }
+}

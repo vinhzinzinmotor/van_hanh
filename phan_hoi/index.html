@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Phản hồi kích thước</title>
+    <meta name="theme-color" content="#0f6e8c" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="icon-192.png" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Phản hồi KT" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="dau">
+      <a class="ve" href="../index.html" title="Về trang Vận Hành">←</a>
+      <h1>Phản hồi kích thước</h1>
+      <button type="button" class="nguoi" id="nut-nguoi" title="Đổi người nộp">👤 <span id="ten-nguoi">…</span></button>
+    </header>
+
+    <!-- Camera quét QR (hiện khi bấm 📷) -->
+    <section class="camera" id="camera" hidden aria-label="Quét mã QR bằng camera">
+      <video id="video" playsinline muted></video>
+      <div class="khung-ngam" aria-hidden="true"></div>
+      <p class="camera-chu" id="camera-chu">Đưa mã QR trên đơn vào giữa khung</p>
+      <div class="camera-nut">
+        <button type="button" id="nut-den" hidden>🔦 Đèn</button>
+        <button type="button" id="nut-dong-cam">✕ Đóng</button>
+      </div>
+    </section>
+
+    <main class="than">
+      <p class="trang-thai" id="trang-thai">Đang tải danh sách đơn…</p>
+
+      <section class="the" aria-labelledby="h-tim">
+        <h2 id="h-tim" class="buoc"><span class="so">1</span>Quét QR hoặc gõ mã đơn</h2>
+        <div class="tim">
+          <input id="o-tim" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
+            placeholder="Gõ vài ký tự mã đơn…" aria-label="Mã đơn hàng" />
+          <button type="button" class="nut-cam" id="nut-cam" title="Quét mã QR bằng camera">📷</button>
+        </div>
+        <ul class="goi-y" id="goi-y" hidden></ul>
+        <p class="loi-tim" id="loi-tim" hidden></p>
+      </section>
+
+      <section class="the" id="khu-don" hidden aria-labelledby="h-don">
+        <h2 id="h-don" class="buoc"><span class="so">2</span>Sửa mã bị sai</h2>
+        <div class="tt-don" id="tt-don"></div>
+        <p class="goi-y-nho">Chỉ sửa mã sai. Sai mà chưa đo lại được thì ghi chú. Mã có sửa sẽ đổi màu và được nộp.</p>
+        <div id="ds-hang"></div>
+      </section>
+
+      <p class="ket-qua" id="ket-qua" hidden></p>
+    </main>
+
+    <footer class="chan" id="chan" hidden>
+      <span id="dem-sua">Chưa sửa mã nào</span>
+      <button type="button" class="nut" id="nut-huy">Đơn khác</button>
+      <button type="button" class="nut nut-chinh" id="nut-nop" disabled>Nộp</button>
+    </footer>
+
+    <div class="lop-phu" id="hop-ten" hidden>
+      <form class="hop" id="form-ten">
+        <h3>Tên người nộp</h3>
+        <p class="goi-y-nho">Tên này được ghi kèm mỗi phản hồi để người quản lý biết ai báo.</p>
+        <input id="o-ten" maxlength="60" autocomplete="name" placeholder="Ví dụ: Vinh" />
+        <button type="submit" class="nut nut-chinh">Lưu</button>
+      </form>
+    </div>
+
+    <div class="thong-bao" id="thong-bao" hidden></div>
+
+    <script src="cau_hinh.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

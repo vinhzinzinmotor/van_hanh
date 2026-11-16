@@ -1,0 +1,17 @@
+{
+  "name": "Phản hồi kích thước ZZM",
+  "short_name": "Phản hồi KT",
+  "description": "Quét QR trên đơn, báo sai thùng / kích thước / khối lượng gói hàng",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef1f4",
+  "theme_color": "#0f6e8c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
