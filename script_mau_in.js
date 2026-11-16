@@ -15,6 +15,9 @@
 //   Mẫu tùy chỉnh tự sinh CSS riêng (thẻ <style id="mau-in-tuy-chinh">) chỉ áp vào khung có class
 //   "mau-tuy-chinh", ưu tiên cao hơn các luật theo vị trí cột (nth-child) trong style.css.
 //   style.css KHÔNG bị sửa. Mẫu mặc định không sinh CSS → kết quả giữ nguyên như cũ.
+// GIAI ĐOẠN A (kích thước gói hàng): CHỈ mẫu tùy chỉnh — cột loại "ghi_chu" hiện KTGH (tên thùng, chưa có
+//   thùng thì kích thước chuẩn), dòng "Thùng: X" (thùng lớn nhất của đơn) bên trái tổng tiền, mã QR mã đơn bên
+//   trái mã đơn. Dữ liệu từ script_kich_thuoc.js, QR từ thu_vien_qr.js (2 file tự nạp bên dưới).
 // =========================================================================
 
 (function () {
@@ -28,6 +31,28 @@
   };
   const KHOA_BO_NHO_TAM = "zzm_mau_in_tam";
   const ID_THE_CSS = "mau-in-tuy-chinh";
+
+  // ── NẠP 2 FILE PHỤ của mẫu tùy chỉnh (cùng thư mục với file này) ──
+  //   thu_vien_qr.js       : thư viện vẽ mã QR mã đơn
+  //   script_kich_thuoc.js : dữ liệu kích thước gói hàng & thùng (cột KTGH, dòng "Thùng:")
+  // Nạp từ đây để KHÔNG phải sửa index.html. Thiếu file / nạp lỗi → mẫu in để trống phần tương ứng.
+  (function napFilePhu() {
+    if (typeof document === "undefined" || !document.head) return;
+    const thuMuc = document.currentScript && document.currentScript.src
+      ? document.currentScript.src.replace(/[^/]*$/, "")
+      : "";
+    ["thu_vien_qr.js", "script_kich_thuoc.js"].forEach(function (ten) {
+      if (document.querySelector('script[data-mau-in-phu="' + ten + '"]')) return;
+      const the = document.createElement("script");
+      the.src = thuMuc + ten;
+      the.async = false; // nạp đúng thứ tự
+      the.setAttribute("data-mau-in-phu", ten);
+      the.onerror = function () {
+        console.warn("[MauIn] Không nạp được " + ten + " → mẫu in để trống phần tương ứng");
+      };
+      document.head.appendChild(the);
+    });
+  })();
 
   // Danh sách hợp lệ — PHẢI giống apps_script/mau_in_don.gs
   const LOAI_COT = ["so_luong", "sku", "ten", "vi_tri", "ghi_chu"];
@@ -108,6 +133,45 @@
     return canLe + (cacLop.length ? ' class="' + cacLop.join(" ") + '"' : "");
   }
 
+  // ── PHẦN THÊM CỦA MẪU TÙY CHỈNH: KTGH, thùng lớn nhất, mã QR ──
+  // Mỗi hàm tự bắt lỗi: lỗi / thiếu dữ liệu / thiếu file phụ → trả "" (để trống), không bao giờ làm hỏng đơn.
+
+  // Cột KTGH: có thùng → tên thùng; chưa có thùng → kích thước chuẩn D×R×C; không có → ""
+  function ktgh(sku) {
+    try {
+      return typeof window !== "undefined" && window.KichThuoc ? window.KichThuoc.noiDungKtgh(sku) || "" : "";
+    } catch (e) {
+      console.error("[MauIn] Lỗi tra kích thước — để trống:", e);
+      return "";
+    }
+  }
+
+  // Thùng lớn nhất trong các mã của đơn (thùng ở dòng dưới trong sheet TONG_HOP_SIZE_THUNG là lớn hơn)
+  function thungCuaDon(items) {
+    try {
+      if (typeof window === "undefined" || !window.KichThuoc) return "";
+      return window.KichThuoc.thungLonNhat(items.map(function (it) { return it.sku; })) || "";
+    } catch (e) {
+      console.error("[MauIn] Lỗi chọn thùng — để trống:", e);
+      return "";
+    }
+  }
+
+  // Mã QR của mã đơn (ảnh vector đen trắng, kích thước đặt trong CSS)
+  function maQr(noiDung) {
+    try {
+      if (!noiDung || typeof qrcode !== "function") return "";
+      const qr = qrcode(0, "M");
+      qr.addData(String(noiDung));
+      qr.make();
+      const svg = qr.createSvgTag({ cellSize: 1, margin: 2, scalable: true });
+      return '<img class="mi-qr" alt="" src="data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '">';
+    } catch (e) {
+      console.error("[MauIn] Lỗi vẽ mã QR — bỏ mã QR:", e);
+      return "";
+    }
+  }
+
   // Nội dung của 1 ô dữ liệu theo loại cột
   function giaTriO(cot, it, mau) {
     switch (cot.loai) {
@@ -122,7 +186,8 @@
       case "vi_tri":
         return `${it.loc}`;
       case "ghi_chu":
-        return "";
+        // Mẫu tùy chỉnh: cột này hiện KTGH (tên thùng / kích thước chuẩn). Mẫu gốc: để trống như cũ
+        return mau.tuyChinh ? esc(ktgh(it.sku)) : "";
       default:
         throw new Error("Loại cột không hợp lệ: " + cot.loai);
     }
@@ -139,7 +204,7 @@
         <div class="invoice-head">
           <div><b>${esc(mau.dauDon.nhanMaVanDon)}</b> ${don.vandon}</div>
           <div style="display:flex;align-items:center;gap:10px;">
-            <span class="oid-value">${esc(mau.dauDon.nhanMaDon)} ${ctx.idDon}</span>
+            ${tc ? maQr(ctx.idDon) : ""}<span class="oid-value">${esc(mau.dauDon.nhanMaDon)} ${ctx.idDon}</span>
             <button class="btn-copy-don" onclick="copyDonHang(this)">📋 Copy</button>
           </div>
         </div>
@@ -160,11 +225,16 @@
     });
 
     const hienTong = !tc || mau.trang.hienTongTien;
+    const dongTong = hienTong
+      ? `<div class="inv-total">${esc(mau.nhanTongTien)}<span class="num">${ctx.total.toLocaleString("vi-VN")}</span></div>`
+      : "";
+    // Mẫu tùy chỉnh: "Thùng: X" cùng hàng, bên TRÁI tổng tiền. Không có thùng → giữ nguyên như cũ
+    const thung = tc ? thungCuaDon(don.items) : "";
     html += `</tbody></table>
         ${ctx.canhBaoDeVo}
-        ` + (hienTong
-      ? `<div class="inv-total">${esc(mau.nhanTongTien)}<span class="num">${ctx.total.toLocaleString("vi-VN")}</span></div>`
-      : "") +
+        ` + (thung
+      ? `<div class="mi-chan-tong"><span class="mi-thung">Thùng:<b>${esc(thung)}</b></span>${dongTong}</div>`
+      : dongTong) +
       (tc && mau.trang.chanDon ? `<div class="mi-chan-don">${esc(mau.trang.chanDon)}</div>` : "") + `
       </div>`;
 
@@ -214,7 +284,13 @@
           chon("td", cot.loai) + "{" + luatCot(cot, cheDo, "td") + "}";
       }).join("\n") + "\n" +
         ".invoice-box.mau-tuy-chinh .invoice-head .oid-value{font-size:" + mau.trang.coChuMaDon + "px !important}\n" +
-        ".invoice-box.mau-tuy-chinh .mi-chan-don{margin-top:8px;text-align:center;font-size:12px;white-space:pre-line}";
+        ".invoice-box.mau-tuy-chinh .mi-chan-don{margin-top:8px;text-align:center;font-size:12px;white-space:pre-line}\n" +
+        // Mã QR bên trái mã đơn · dòng "Thùng: X" bên trái tổng tiền — chỉ đen trắng, không tô màu
+        ".invoice-box.mau-tuy-chinh .mi-qr{width:14mm;height:14mm;display:block;flex:none}\n" +
+        ".invoice-box.mau-tuy-chinh .mi-chan-tong{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px}\n" +
+        ".invoice-box.mau-tuy-chinh .mi-chan-tong .inv-total{margin-top:0 !important;margin-left:auto}\n" +
+        ".invoice-box.mau-tuy-chinh .mi-thung{font-weight:bold;font-size:16px;color:#000;background:#fff;white-space:nowrap}\n" +
+        ".invoice-box.mau-tuy-chinh .mi-thung b{font-size:20px;border:2px solid #000;border-radius:4px;padding:1px 8px;margin-left:6px}";
     };
     return "/* Mẫu in tùy chỉnh — sinh tự động từ sheet " + SHEET_CONFIG.SHEET_NAME + " (phiên bản " + mau.phienBan + ") */\n" +
       "@media screen {\n" + khoi("man_hinh") + "\n}\n" +

@@ -978,6 +978,8 @@
     else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); $("nut-lam-lai").click(); }
   });
   window.addEventListener("resize", function () { if (docXem) canTo(); });
+  // Dữ liệu kích thước / thùng (script_kich_thuoc.js) tải xong sau → vẽ lại bản in thử cho đủ KTGH, Thùng
+  window.addEventListener("kichthuoc:capnhat", function () { veXemThu(); });
   window.addEventListener("beforeunload", function (e) {
     if (danhSachThayDoi().length) { e.preventDefault(); e.returnValue = ""; }
   });
