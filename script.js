@@ -1396,6 +1396,24 @@ btnTaoIn.addEventListener("click", function () {
         <div class="inv-total">Total Price:<span class="num">${total.toLocaleString("vi-VN")}</span></div>
       </div>`;
 
+    // ── MẪU IN TÙY CHỈNH (script_mau_in.js) ──
+    // Mẫu gốc phía trên vẫn được vẽ đầy đủ. Nếu có mẫu tùy chỉnh hợp lệ thì dùng mẫu đó;
+    // lỗi / không có / trả về rỗng → giữ nguyên mẫu gốc (hệ thống không bao giờ đứng).
+    try {
+      if (window.MauIn && typeof window.MauIn.veDon === "function") {
+        var mauTuyChinh = window.MauIn.veDon({
+          idDon: idDon,
+          don: don,
+          total: total,
+          canhBaoDeVo: canhBaoDeVo,
+          copyText: copyText,
+        });
+        if (typeof mauTuyChinh === "string" && mauTuyChinh !== "") template = mauTuyChinh;
+      }
+    } catch (loiMauIn) {
+      console.error("[MauIn] Lỗi vẽ mẫu in tùy chỉnh — dùng mẫu gốc:", loiMauIn);
+    }
+
     htmlPreview += template;
     htmlPrint += template.replace("invoice-box", "invoice-box page-break");
   });
@@ -1547,14 +1565,25 @@ function copyDonHang(btn) {
   if (cloneBtn) cloneBtn.style.display = "none";
 
   // Tăng kích thước cột SL chỉ trong bản clone chụp ảnh
+  // Mẫu tùy chỉnh (script_mau_in.js): tìm đúng cột SL theo class dù ở vị trí nào. Mẫu gốc: giữ nguyên như cũ.
+  var laMauTuyChinh = clone.classList.contains("mau-tuy-chinh");
   var cacOSL = clone.querySelectorAll(
-    "table.inv-table td:nth-child(1), table.inv-table th:nth-child(1)",
+    laMauTuyChinh
+      ? "table.inv-table td.mi-so_luong, table.inv-table th.mi-so_luong"
+      : "table.inv-table td:nth-child(1), table.inv-table th:nth-child(1)",
   );
   cacOSL.forEach(function (o) {
     o.style.fontSize = "22px"; // ← tăng cỡ chữ
     o.style.fontWeight = "500"; // ← đậm hơn
     o.style.minWidth = "60px"; // ← cột rộng hơn
     o.style.textAlign = "center";
+    // Mẫu tùy chỉnh có CSS riêng kèm !important → đặt lại kèm "important" để kiểu phóng to không bị lấn át
+    if (laMauTuyChinh) {
+      o.style.setProperty("font-size", "22px", "important");
+      o.style.setProperty("font-weight", "500", "important");
+      o.style.setProperty("min-width", "60px", "important");
+      o.style.setProperty("text-align", "center", "important");
+    }
   });
   // Tăng kích thước vòng tròn số lượng cho khớp với fontSize mới
   var cacVongTron = clone.querySelectorAll("table.inv-table .circle-qty");

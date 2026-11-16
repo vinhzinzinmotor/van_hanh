@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thiết Kế Mẫu In</title>
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="styles_thiet_ke_mau_in.css" media="screen" />
+    <!-- Chỉ dùng khi bấm "In thử 1 đơn": in trực tiếp bằng định dạng in thật của trang Vận Hành -->
+    <link rel="stylesheet" href="style.css" media="print" />
+    <style media="print">
+      body > :not(#print-only-zone) { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <header class="thanh-tren">
+      <div>
+        <a class="ve-trang-chinh" href="index.html">← Trang Vận Hành</a>
+        <h1 class="ten-trang">Thiết kế mẫu in</h1>
+      </div>
+      <span class="chip" id="chip-phien-ban"><span class="cham"></span>Đang tải mẫu đang dùng…</span>
+      <div class="day-nut">
+        <button class="nut" id="nut-hoan-tac" disabled title="Bỏ bước vừa làm (Ctrl+Z)">↶ Hoàn tác</button>
+        <button class="nut" id="nut-lam-lai" disabled title="Lấy lại bước vừa hoàn tác (Ctrl+Y)">↷ Làm lại</button>
+        <button class="nut" id="nut-lich-su">🕘 Lịch sử</button>
+        <button class="nut nut-chinh" id="nut-luu" disabled>Lưu &amp; áp dụng</button>
+      </div>
+    </header>
+    <p class="bang-tin" id="bang-tin" hidden></p>
+
+    <main class="ban-lam-viec">
+      <div class="bang-dk">
+        <section class="muc" aria-labelledby="h-giay">
+          <h2 id="h-giay"><span class="so-buoc">1</span>Khổ giấy</h2>
+          <div class="kho-giay" id="kho-giay"></div>
+          <div class="dong">
+            <label for="le-giay">Lề giấy</label>
+            <div class="keo"><input type="range" id="le-giay" min="0" max="30" step="1" list="moc-le" /><datalist id="moc-le"><option id="moc-le-gt"></option></datalist><span class="gia-tri" id="le-giay-gt"></span></div>
+          </div>
+          <div class="dong"><span class="nhan-dong"></span><span class="ghi-md" id="le-md-chu"></span><button type="button" class="nut-md" id="le-md">↺ Về mặc định</button></div>
+        </section>
+
+        <section class="muc" aria-labelledby="h-cot">
+          <h2 id="h-cot"><span class="so-buoc">2</span>Các cột trên bảng</h2>
+          <p class="goi-y">Kéo <b>⠿</b> hoặc bấm ↑ ↓ để đổi thứ tự. Bấm 👁 để ẩn / hiện. Bấm vào tên để đổi tiêu đề. Bấm vào một cột (ở đây hoặc trên bản in thử) để chỉnh chữ của cột đó.</p>
+          <ul class="ds-cot" id="ds-cot"></ul>
+        </section>
+
+        <section class="muc" aria-labelledby="h-chu">
+          <h2 id="h-chu"><span class="so-buoc">3</span><span id="tieu-de-chu">Chữ của cột</span></h2>
+          <div class="dong">
+            <span class="nhan-dong">Cỡ chữ</span>
+            <div class="keo">
+              <button class="nut-nho" id="co-tru" aria-label="Giảm cỡ chữ">−</button>
+              <input type="range" id="co-chu" min="6" max="48" step="1" aria-label="Cỡ chữ" list="moc-co-chu" />
+              <datalist id="moc-co-chu"><option id="moc-co-chu-gt"></option></datalist>
+              <button class="nut-nho" id="co-cong" aria-label="Tăng cỡ chữ">+</button>
+              <span class="gia-tri" id="co-chu-gt"></span>
+            </div>
+          </div>
+          <div class="dong"><span class="nhan-dong"></span><span class="ghi-md" id="co-chu-md-chu"></span><button type="button" class="nut-md" id="co-md">↺ Về mặc định</button></div>
+          <div class="dong"><span class="nhan-dong">Kiểu chữ</span><div class="nhom-chon" id="kieu-chu"></div></div>
+          <div class="dong"><span class="nhan-dong">Căn lề</span><div class="nhom-chon" id="can-le"></div></div>
+          <div class="dong"><span class="nhan-dong">Độ rộng</span><div class="nhom-chon" id="do-rong"></div></div>
+          <div class="dong" id="dong-phan-tram" hidden>
+            <span class="nhan-dong"></span>
+            <div class="keo"><input type="range" id="phan-tram" min="1" max="100" step="1" aria-label="Độ rộng phần trăm" /><span class="gia-tri" id="phan-tram-gt"></span></div>
+          </div>
+          <div class="dong" style="align-items: flex-start"><span class="nhan-dong">Phông chữ</span><div class="ds-phong" id="ds-phong"></div></div>
+        </section>
+
+        <section class="muc" aria-labelledby="h-dau">
+          <h2 id="h-dau"><span class="so-buoc">4</span>Đầu &amp; chân đơn</h2>
+          <div class="dong"><label for="nhan-vd">Nhãn vận đơn</label><input class="o-nhap" id="nhan-vd" maxlength="60" /></div>
+          <div class="dong"><label for="nhan-md">Nhãn mã đơn</label><input class="o-nhap" id="nhan-md" maxlength="60" /></div>
+          <div class="dong">
+            <label for="co-ma-don">Cỡ mã đơn</label>
+            <div class="keo"><input type="range" id="co-ma-don" min="8" max="40" step="1" list="moc-ma-don" /><datalist id="moc-ma-don"><option id="moc-ma-don-gt"></option></datalist><span class="gia-tri" id="co-ma-don-gt"></span></div>
+          </div>
+          <div class="dong"><span class="nhan-dong"></span><span class="ghi-md" id="co-ma-don-md-chu"></span><button type="button" class="nut-md" id="co-ma-don-md">↺ Về mặc định</button></div>
+          <div class="dong"><label for="nhan-tong">Nhãn tổng tiền</label><input class="o-nhap" id="nhan-tong" maxlength="60" /></div>
+          <div class="dong" style="gap: 18px">
+            <span class="nhan-dong"></span>
+            <label class="cong-tac"><input type="checkbox" id="hien-tong" /> Hiện tổng tiền</label>
+            <label class="cong-tac"><input type="checkbox" id="khoanh-tron" /> Khoanh tròn SL &gt; 1</label>
+          </div>
+          <label for="chan-don" class="goi-y">Dòng chữ cuối đơn (để trống = không có)</label>
+          <textarea class="o-nhap" id="chan-don" maxlength="200" placeholder="Ví dụ: Cảm ơn quý khách đã ủng hộ ZinZinMotor"></textarea>
+          <span class="dem-ky-tu" id="dem-chan-don"></span>
+        </section>
+      </div>
+
+      <section class="xem-thu" aria-label="Bản in thử">
+        <div class="thanh-xem">
+          <label class="cong-tac"><input type="checkbox" id="mau-de-vo" checked /> Đơn mẫu có hàng dễ vỡ</label>
+          <button type="button" class="nut" id="nut-in-thu" title="In 1 đơn mẫu ra giấy thật bằng mẫu đang chỉnh — chưa lưu, chưa áp dụng">🖨 In thử 1 đơn</button>
+          <span class="chip" id="chip-thay-doi"><span class="cham"></span>Chưa có thay đổi</span>
+        </div>
+        <p class="canh-bao-trang" id="canh-bao-trang" hidden></p>
+        <div class="mat-ban" id="mat-ban">
+          <div class="khung-giay" id="khung-giay">
+            <span class="nhan-kho" id="nhan-kho"></span>
+            <iframe id="khung-xem-thu" title="Bản in thử" scrolling="no"></iframe>
+          </div>
+        </div>
+        <p class="goi-y">Bản in thử dùng đúng cách vẽ đơn và định dạng in của trang Vận Hành, vẽ theo tỉ lệ milimét của khổ giấy. Bấm vào một cột trên đây để chỉnh cột đó.</p>
+      </section>
+    </main>
+
+    <div class="lop-phu" id="hop-luu" hidden>
+      <form class="hop" id="form-luu" autocomplete="off">
+        <h3>Lưu và áp dụng mẫu mới</h3>
+        <p class="goi-y">Những thay đổi sau sẽ được áp dụng. Các máy nhận mẫu mới khi <b>tải lại trang Vận Hành (F5)</b>.</p>
+        <ul class="ds-thay-doi" id="ds-thay-doi"></ul>
+        <label for="nguoi-luu" class="goi-y">Người lưu</label>
+        <input class="o-nhap" id="nguoi-luu" maxlength="60" />
+        <label for="ghi-chu" class="goi-y">Ghi chú cho lần lưu này</label>
+        <input class="o-nhap" id="ghi-chu" maxlength="200" placeholder="Ví dụ: Tăng cỡ chữ SKU cho dễ đọc" />
+        <label for="mat-khau" class="goi-y">Mật khẩu admin</label>
+        <input class="o-nhap" id="mat-khau" type="password" autocomplete="new-password" />
+        <p class="thong-diep" id="thong-diep-luu" hidden></p>
+        <div class="dong" style="justify-content: flex-end">
+          <button type="button" class="nut" id="huy-luu">Hủy</button>
+          <button type="submit" class="nut nut-chinh" id="xac-nhan-luu">Lưu &amp; áp dụng</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="lop-phu" id="hop-lich-su" hidden>
+      <div class="hop">
+        <h3>Lịch sử mẫu in</h3>
+        <p class="goi-y">“Mở bản này” nạp bản cũ lên <b>dưới dạng nháp</b> để xem trước; bấm “Lưu &amp; áp dụng” nếu muốn dùng lại bản đó.</p>
+        <p class="thong-diep" id="thong-diep-lich-su" hidden></p>
+        <ul class="ds-phien-ban" id="ds-phien-ban"></ul>
+        <div class="dong" style="justify-content: space-between">
+          <button class="nut nut-nguy" id="ve-mau-goc" title="Nạp mẫu gốc (mẫu in viết sẵn trong hệ thống) dưới dạng nháp">Quay về mẫu gốc</button>
+          <button class="nut" id="dong-lich-su">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lop-phu" id="hop-in-thu" hidden>
+      <div class="hop">
+        <h3>🖨 In thử 1 đơn ra giấy</h3>
+        <p class="goi-y">In đúng đơn mẫu đang hiện bằng <b>mẫu đang chỉnh</b>. In thử <b>không lưu, không áp dụng</b>: các máy khác vẫn in mẫu cũ cho đến khi bạn bấm “Lưu &amp; áp dụng”.</p>
+        <div class="tom-tat-in" id="tom-tat-in"></div>
+        <p class="goi-y"><b>Trong hộp thoại in của Chrome, chọn:</b></p>
+        <ol class="ds-thay-doi" id="huong-dan-in"></ol>
+        <div class="dong" style="justify-content: flex-end">
+          <button type="button" class="nut" id="huy-in-thu">Đóng</button>
+          <button type="button" class="nut nut-chinh" id="mo-in-thu">Mở hộp thoại in</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="thong-bao" id="thong-bao" hidden></div>
+
+    <!-- Vùng in thử — giống #print-only-zone của trang Vận Hành, chỉ hiện khi in -->
+    <div id="print-only-zone"></div>
+
+    <!-- script_mau_in.js: cùng cách vẽ đơn + kiểm tra hợp lệ với trang Vận Hành -->
+    <script src="script_mau_in.js"></script>
+    <script src="script_thiet_ke_mau_in.js"></script>
+  </body>
+</html>
