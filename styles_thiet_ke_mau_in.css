@@ -92,7 +92,8 @@ button { cursor: pointer; }
 .ds-cot li.an .ten-cot { color: var(--chu-phu); text-decoration: line-through; }
 .tay-keo { cursor: grab; color: var(--chu-phu); font-size: 16px; padding: 0 2px; user-select: none; }
 .mat { border: 0; background: transparent; font-size: 15px; padding: 2px; }
-.ten-cot { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px; }
+.ds-cot li { flex-wrap: wrap; }
+.ten-cot { flex: 1; min-width: 110px; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px; }
 .ten-cot:hover, .ten-cot:focus { border-color: var(--vien); background: var(--nen); }
 .loai-cot { font-size: 11px; color: var(--chu-phu); white-space: nowrap; }
 

@@ -28,7 +28,8 @@
 
   const KHO = { A6: [105, 148], A5: [148, 210], A4: [210, 297] };
   const PX_MOI_MM = 96 / 25.4;
-  const TEN_LOAI = { so_luong: "Số lượng", sku: "Mã SKU", ten: "Tên sản phẩm", vi_tri: "Vị trí kho", ghi_chu: "Ghi chú" };
+  // Loại cột "ghi_chu" (tên nội bộ giữ nguyên) = cột KTGH: tên thùng / kích thước chuẩn (giai đoạn A)
+  const TEN_LOAI = { so_luong: "Số lượng", sku: "Mã SKU", ten: "Tên sản phẩm", vi_tri: "Vị trí kho", ghi_chu: "Kích thước (KTGH)" };
   const TEN_CAN = { trai: "Trái", giua: "Giữa", phai: "Phải" };
 
   // Đơn mẫu để xem thử / in thử (số liệu do chủ dự án cung cấp)
@@ -103,6 +104,7 @@
   function chuanHoa(m) {
     const t = m.trang || {};
     const trong = function (v) { return v === undefined || v === "" ? null : v; };
+    const macDinh = function (v, khoa) { return v === undefined ? MauIn.TRANG_MAC_DINH[khoa] : v; };
     return {
       bat: m.bat,
       dauDon: { nhanMaVanDon: m.dauDon.nhanMaVanDon, nhanMaDon: m.dauDon.nhanMaDon },
@@ -114,7 +116,13 @@
       }),
       khoanhTronSoLuong: m.khoanhTronSoLuong,
       nhanTongTien: m.nhanTongTien,
-      trang: { khoGiay: t.khoGiay, leMm: t.leMm, coChuMaDon: t.coChuMaDon, hienTongTien: t.hienTongTien, chanDon: t.chanDon },
+      // Bản lưu đời cũ thiếu mục nào (phiên bản 1 chưa có cài đặt trang; trước GĐ B chưa có hienQr / hienThung)
+      // → lấy giá trị mặc định, giống cách trang Vận Hành đọc sheet đời cũ
+      trang: {
+        khoGiay: macDinh(t.khoGiay, "khoGiay"), leMm: macDinh(t.leMm, "leMm"), coChuMaDon: macDinh(t.coChuMaDon, "coChuMaDon"),
+        hienTongTien: macDinh(t.hienTongTien, "hienTongTien"), chanDon: macDinh(t.chanDon, "chanDon"),
+        hienQr: macDinh(t.hienQr, "hienQr"), hienThung: macDinh(t.hienThung, "hienThung"),
+      },
     };
   }
 
@@ -239,7 +247,9 @@
       return '<li draggable="true" data-loai="' + c.loai + '" class="' + (c.loai === cotChon ? "dang-chon" : "") + (c.hien ? "" : " an") + '">' +
         '<span class="tay-keo" title="Kéo để đổi thứ tự" aria-hidden="true">⠿</span>' +
         '<button type="button" class="mat" data-an="' + c.loai + '" aria-label="' + (c.hien ? "Ẩn" : "Hiện") + " cột " + esc(c.tieuDe) + '" title="' + (c.hien ? "Đang hiện — bấm để ẩn" : "Đang ẩn — bấm để hiện") + '">' + (c.hien ? "👁" : "◌") + "</button>" +
-        '<input class="ten-cot" data-ten="' + c.loai + '" value="' + esc(c.tieuDe) + '" maxlength="40" aria-label="Tiêu đề cột ' + TEN_LOAI[c.loai] + '">' +
+        '<input class="ten-cot" data-ten="' + c.loai + '" value="' + esc(c.tieuDe) + '" maxlength="40" aria-label="Tiêu đề cột ' + TEN_LOAI[c.loai] + '"' +
+          (c.loai === "ghi_chu" && c.tieuDe !== "KTGH" ? ' title="Gợi ý: đặt tiêu đề KTGH cho cột kích thước"' : "") + ">" +
+        (c.loai === "ghi_chu" && c.tieuDe !== "KTGH" ? '<button type="button" class="nut-md" data-dat-ktgh="1" title="Đổi tiêu đề cột này thành KTGH">Đặt KTGH</button>' : "") +
         '<span class="loai-cot">' + TEN_LOAI[c.loai] + "</span>" +
         '<button type="button" class="nut-nho" data-len="' + c.loai + '" aria-label="Đưa lên"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
         '<button type="button" class="nut-nho" data-xuong="' + c.loai + '" aria-label="Đưa xuống"' + (i === nhap.cot.length - 1 ? " disabled" : "") + ">↓</button>" +
@@ -299,6 +309,8 @@
     $("co-ma-don-md").disabled = laMd;
     $("hien-tong").checked = nhap.trang.hienTongTien;
     $("khoanh-tron").checked = nhap.khoanhTronSoLuong;
+    $("hien-qr").checked = nhap.trang.hienQr;
+    $("hien-thung").checked = nhap.trang.hienThung;
     $("dem-chan-don").textContent = nhap.trang.chanDon.length + " / 200";
   }
 
@@ -389,7 +401,7 @@
     let cacO = [];
     if (doiCuoi.indexOf("cot:") === 0) cacO = Array.prototype.slice.call(oCuaCot(mv, doiCuoi.slice(4)));
     else {
-      const chon = { dau: ".invoice-head", maDon: ".oid-value", tong: ".inv-total", chan: ".mi-chan-don", bang: "table.inv-table" }[doiCuoi];
+      const chon = { dau: ".invoice-head", maDon: ".oid-value", tong: ".inv-total", chan: ".mi-chan-don", bang: "table.inv-table", qr: ".invoice-head", thung: ".mi-thung" }[doiCuoi];
       if (chon) cacO = Array.prototype.slice.call(docXem.querySelectorAll(chon));
     }
     cacO.forEach(function (o) { o.classList.add("vua-doi"); });
@@ -441,6 +453,8 @@
     if (a.trang.leMm !== b.trang.leMm) ds.push("Lề giấy: " + a.trang.leMm + " → " + b.trang.leMm + " mm");
     if (a.trang.coChuMaDon !== b.trang.coChuMaDon) ds.push("Cỡ chữ mã đơn: " + a.trang.coChuMaDon + " → " + b.trang.coChuMaDon + " px");
     if (a.trang.hienTongTien !== b.trang.hienTongTien) ds.push(b.trang.hienTongTien ? "Hiện tổng tiền" : "Ẩn tổng tiền");
+    if (a.trang.hienQr !== b.trang.hienQr) ds.push(b.trang.hienQr ? "Hiện mã QR mã đơn" : "Ẩn mã QR mã đơn");
+    if (a.trang.hienThung !== b.trang.hienThung) ds.push(b.trang.hienThung ? "Hiện dòng \"Thùng: …\"" : "Ẩn dòng \"Thùng: …\"");
     if (a.khoanhTronSoLuong !== b.khoanhTronSoLuong) ds.push(b.khoanhTronSoLuong ? "Bật khoanh tròn SL > 1" : "Tắt khoanh tròn SL > 1");
     if (a.trang.chanDon !== b.trang.chanDon) ds.push(b.trang.chanDon ? "Dòng chữ cuối đơn: “" + b.trang.chanDon + "”" : "Bỏ dòng chữ cuối đơn");
     if (a.dauDon.nhanMaVanDon !== b.dauDon.nhanMaVanDon) ds.push("Nhãn vận đơn: “" + a.dauDon.nhanMaVanDon + "” → “" + b.dauDon.nhanMaVanDon + "”");
@@ -790,6 +804,11 @@
 
   const ds = $("ds-cot");
   ds.addEventListener("click", function (e) {
+    if (e.target.closest("[data-dat-ktgh]")) {
+      cotChon = "ghi_chu";
+      doi("cot:ghi_chu", function () { cot("ghi_chu").tieuDe = "KTGH"; });
+      return;
+    }
     const an = e.target.closest("[data-an]"), len = e.target.closest("[data-len]"), xuong = e.target.closest("[data-xuong]");
     if (an) {
       const c = cot(an.dataset.an);
@@ -910,6 +929,8 @@
   $("co-ma-don-md").addEventListener("click", function () { doi("maDon", function () { nhap.trang.coChuMaDon = MauIn.TRANG_MAC_DINH.coChuMaDon; }); });
   $("hien-tong").addEventListener("change", function (e) { doi("tong", function () { nhap.trang.hienTongTien = e.target.checked; }); });
   $("khoanh-tron").addEventListener("change", function (e) { doi("cot:so_luong", function () { nhap.khoanhTronSoLuong = e.target.checked; }); });
+  $("hien-qr").addEventListener("change", function (e) { doi("qr", function () { nhap.trang.hienQr = e.target.checked; }); });
+  $("hien-thung").addEventListener("change", function (e) { doi("tong", function () { nhap.trang.hienThung = e.target.checked; }); });
   $("chan-don").addEventListener("input", function (e) {
     const v = sach(e.target.value).slice(0, 200);
     if (v !== e.target.value) e.target.value = v;

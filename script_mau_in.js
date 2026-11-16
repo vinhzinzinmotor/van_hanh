@@ -18,6 +18,8 @@
 // GIAI ĐOẠN A (kích thước gói hàng): CHỈ mẫu tùy chỉnh — cột loại "ghi_chu" hiện KTGH (tên thùng, chưa có
 //   thùng thì kích thước chuẩn), dòng "Thùng: X" (thùng lớn nhất của đơn) bên trái tổng tiền, mã QR mã đơn bên
 //   trái mã đơn. Dữ liệu từ script_kich_thuoc.js, QR từ thu_vien_qr.js (2 file tự nạp bên dưới).
+// GIAI ĐOẠN B: 2 cài đặt HIEN_QR, HIEN_THUNG trong sheet (bật / tắt mã QR, dòng "Thùng"). Sheet chưa có dòng
+//   hoặc mẫu lưu tạm đời cũ → coi như BẬT (giống giai đoạn A). PHẢI giống apps_script/mau_in_don.gs.
 // =========================================================================
 
 (function () {
@@ -62,7 +64,8 @@
   const PHONG = ["Arial", "Tahoma", "Verdana", "Times New Roman", "Courier New", "Consolas"];
 
   // Giá trị mặc định của các cài đặt chung thêm ở giai đoạn 3 (= kiểu dáng hiện tại trong style.css)
-  const TRANG_MAC_DINH = { khoGiay: "A6", leMm: 5, coChuMaDon: 16, hienTongTien: true, chanDon: "" };
+  // hienQr / hienThung (giai đoạn B): sheet chưa có dòng → coi như BẬT (giống giai đoạn A)
+  const TRANG_MAC_DINH = { khoGiay: "A6", leMm: 5, coChuMaDon: 16, hienTongTien: true, chanDon: "", hienQr: true, hienThung: true };
 
   // ── MẪU MẶC ĐỊNH = mẫu in hiện tại trong script.js ──
   const MAU_MAC_DINH = {
@@ -204,7 +207,7 @@
         <div class="invoice-head">
           <div><b>${esc(mau.dauDon.nhanMaVanDon)}</b> ${don.vandon}</div>
           <div style="display:flex;align-items:center;gap:10px;">
-            ${tc ? maQr(ctx.idDon) : ""}<span class="oid-value">${esc(mau.dauDon.nhanMaDon)} ${ctx.idDon}</span>
+            ${tc && mau.trang.hienQr !== false ? maQr(ctx.idDon) : ""}<span class="oid-value">${esc(mau.dauDon.nhanMaDon)} ${ctx.idDon}</span>
             <button class="btn-copy-don" onclick="copyDonHang(this)">📋 Copy</button>
           </div>
         </div>
@@ -229,7 +232,7 @@
       ? `<div class="inv-total">${esc(mau.nhanTongTien)}<span class="num">${ctx.total.toLocaleString("vi-VN")}</span></div>`
       : "";
     // Mẫu tùy chỉnh: "Thùng: X" cùng hàng, bên TRÁI tổng tiền. Không có thùng → giữ nguyên như cũ
-    const thung = tc ? thungCuaDon(don.items) : "";
+    const thung = tc && mau.trang.hienThung !== false ? thungCuaDon(don.items) : "";
     html += `</tbody></table>
         ${ctx.canhBaoDeVo}
         ` + (thung
@@ -386,6 +389,8 @@
         coChuMaDon: coKhoa("CO_CHU_MA_DON") ? soHoacTrong(theoKhoa.CO_CHU_MA_DON) : TRANG_MAC_DINH.coChuMaDon,
         hienTongTien: coKhoa("HIEN_TONG_TIEN") ? theoKhoa.HIEN_TONG_TIEN : TRANG_MAC_DINH.hienTongTien,
         chanDon: coKhoa("CHAN_DON") ? (theoKhoa.CHAN_DON == null ? "" : chu(theoKhoa.CHAN_DON)) : TRANG_MAC_DINH.chanDon,
+        hienQr: coKhoa("HIEN_QR") ? theoKhoa.HIEN_QR : TRANG_MAC_DINH.hienQr,
+        hienThung: coKhoa("HIEN_THUNG") ? theoKhoa.HIEN_THUNG : TRANG_MAC_DINH.hienThung,
       },
       cot: cot,
     };
@@ -419,6 +424,8 @@
       if (typeof t.hienTongTien !== "boolean") loi.push("HIEN_TONG_TIEN phải là ô đánh dấu ☑/☐");
       if (typeof t.chanDon !== "string" || t.chanDon.length > 200) loi.push("CHAN_DON tối đa 200 ký tự");
       else if (/[<>]/.test(t.chanDon)) loi.push("CHAN_DON không được chứa ký tự < >");
+      if (typeof t.hienQr !== "boolean") loi.push("HIEN_QR phải là ô đánh dấu ☑/☐");
+      if (typeof t.hienThung !== "boolean") loi.push("HIEN_THUNG phải là ô đánh dấu ☑/☐");
     }
     if (!Array.isArray(mau.cot) || mau.cot.length === 0 || mau.cot.length > 12) {
       loi.push("Phải có 1–12 cột");
@@ -461,8 +468,18 @@
       trang: {
         khoGiay: mau.trang.khoGiay, leMm: mau.trang.leMm, coChuMaDon: mau.trang.coChuMaDon,
         hienTongTien: mau.trang.hienTongTien, chanDon: mau.trang.chanDon,
+        hienQr: mau.trang.hienQr, hienThung: mau.trang.hienThung,
       },
     };
+  }
+
+  // Mẫu lưu tạm từ phiên bản cũ (chưa có hienQr / hienThung) → bổ sung giá trị mặc định (BẬT) như khi đọc sheet
+  function boSungMacDinh(mau) {
+    if (mau && mau.trang && typeof mau.trang === "object") {
+      if (mau.trang.hienQr === undefined) mau.trang.hienQr = TRANG_MAC_DINH.hienQr;
+      if (mau.trang.hienThung === undefined) mau.trang.hienThung = TRANG_MAC_DINH.hienThung;
+    }
+    return mau;
   }
 
   // Áp dụng 1 mẫu đọc được (từ sheet hoặc bộ nhớ tạm). Trả về true nếu hợp lệ
@@ -492,7 +509,7 @@
 
   function docBoNhoTam() {
     try {
-      return JSON.parse(localStorage.getItem(KHOA_BO_NHO_TAM));
+      return boSungMacDinh(JSON.parse(localStorage.getItem(KHOA_BO_NHO_TAM)));
     } catch (e) {
       return null;
     }
