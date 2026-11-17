@@ -57,6 +57,7 @@
     const ten = chuoi($("o-ten").value).replace(/[<>]/g, "").slice(0, 60);
     if (!ten) { $("o-ten").focus(); return; }
     try { localStorage.setItem(KHOA_TEN, ten); } catch (er) { /* không lưu được thì vẫn dùng cho phiên này */ }
+    $("o-ten").blur(); // thoát ô tên (bàn phím tắt) → nút Quét hiện lại
     $("hop-ten").hidden = true;
     veTen();
     if (!docTen()) $("ten-nguoi").textContent = ten;
@@ -199,15 +200,49 @@
     }
   }
 
+  // ── TIẾNG BÁO + RUNG (iPhone không rung được qua web → dùng tiếng; tiếng theo nút gạt im lặng của máy) ──
+  const am = { ctx: null };
+  function moAm() { // gọi trong lúc người dùng bấm (trình duyệt chỉ cho phát tiếng sau 1 lần chạm)
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!am.ctx && AC) am.ctx = new AC();
+      if (am.ctx && am.ctx.state === "suspended") am.ctx.resume();
+    } catch (e) { /* máy không hỗ trợ tiếng */ }
+  }
+  function keu(loai) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(loai === "loi" ? [90, 60, 90] : 80);
+      const c = am.ctx;
+      if (!c || c.state !== "running") return;
+      (loai === "loi" ? [[320, 0], [320, 0.2]] : [[1250, 0]]).forEach(function (n) {
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + n[1];
+        o.type = loai === "loi" ? "square" : "sine";
+        o.frequency.value = n[0];
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.2, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + 0.17);
+      });
+    } catch (e) { /* bỏ qua */ }
+  }
+  const lacLai = function (el) { el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; };
+
   // ── TÌM ĐƠN ──
-  function baoLoiTim(chu) { $("loi-tim").textContent = chu; $("loi-tim").hidden = !chu; }
+  // manh = true: lỗi sau khi bấm Enter / máy bắn mã → rung lắc + tiếng báo cho dễ thấy
+  function baoLoiTim(chu, manh) {
+    const el = $("loi-tim");
+    el.textContent = chu;
+    el.hidden = !chu;
+    if (chu && manh) { lacLai(el); moAm(); keu("loi"); }
+  }
 
   function xuLyNhap(laEnter) {
     const tho = $("o-tim").value;
     baoLoiTim("");
     if (coDauTiengViet(tho)) {
       $("goi-y").hidden = true;
-      baoLoiTim("Mã có dấu tiếng Việt — bộ gõ tiếng Việt (Unikey) đang bật. Hãy tắt bộ gõ rồi quét / gõ lại.");
+      baoLoiTim("Mã có dấu tiếng Việt — bộ gõ tiếng Việt (Unikey) đang bật. Hãy tắt bộ gõ rồi quét / gõ lại.", laEnter);
       return;
     }
     const q = khoaDon(tho);
@@ -216,7 +251,7 @@
     if (laEnter) {
       const li = $("goi-y").querySelectorAll("li[data-khoa]");
       if (!$("goi-y").hidden && li[chonGoiY]) { moDon(li[chonGoiY].dataset.khoa); return; }
-      if (q) baoLoiTim("Không tìm thấy đơn \"" + tho.trim() + "\" trong " + (CFG.SO_NGAY_TIM_DON || 45) + " ngày gần nhất.");
+      if (q) baoLoiTim("Không tìm thấy đơn \"" + tho.trim() + "\" trong " + (CFG.SO_NGAY_TIM_DON || 45) + " ngày gần nhất.", true);
       return;
     }
     if (q.length < 3) { $("goi-y").hidden = true; return; }
@@ -504,7 +539,7 @@
     if (!khoa) return;
     if (duLieu.donTheoKhoa.has(khoa)) {
       nhayKhung("tot");
-      if (navigator.vibrate) navigator.vibrate(80);
+      keu("tot");
       dongCamera();
       $("o-tim").value = duLieu.donTheoKhoa.get(khoa).ma;
       moDon(khoa);
@@ -514,11 +549,18 @@
     const ls = cam.lanSai;
     if (ls.ma === khoa && bayGio - ls.luc < 1500) ls.lan++; else { ls.ma = khoa; ls.lan = 1; }
     ls.luc = bayGio;
-    if (ls.lan === 2) {
+    // Đọc được 2 lần liền cùng 1 mã lạ mới báo (tránh báo nhầm); giữ mã trong khung thì 3 giây báo lại 1 lần
+    if (ls.lan === 2 || (ls.lan > 2 && bayGio - (ls.bao || 0) > 3000)) {
+      if (!duLieu.daTai) { $("camera-chu").textContent = "Đang tải danh sách đơn, chờ một chút…"; return; }
+      ls.bao = bayGio;
       nhayKhung("loi");
-      $("camera-chu").textContent = duLieu.daTai
-        ? "Mã \"" + tho.slice(0, 40) + "\" không có trong đơn " + (CFG.SO_NGAY_TIM_DON || 45) + " ngày gần nhất"
-        : "Đang tải danh sách đơn, chờ một chút…";
+      keu("loi");
+      $("canh-bao-quet-chu").textContent = "Mã \"" + tho.slice(0, 40) + "\" không có trong đơn " + (CFG.SO_NGAY_TIM_DON || 45) + " ngày gần nhất. Kiểm tra lại đơn, hoặc đóng camera để gõ mã.";
+      const cb = $("canh-bao-quet");
+      cb.hidden = false;
+      lacLai(cb);
+      clearTimeout(xetMa.h);
+      xetMa.h = setTimeout(function () { cb.hidden = true; }, 3500);
     }
   }
 
@@ -547,7 +589,8 @@
     await $("video").play();
     const kn = cam.ram.getCapabilities ? cam.ram.getCapabilities() : {};
     $("nut-den").hidden = !kn.torch;
-    $("nut-den").textContent = "🔦 Đèn";
+    $("nut-den").setAttribute("aria-pressed", "false");
+    $("nut-den-chu").textContent = "Bật đèn";
     if (kn.focusMode && kn.focusMode.indexOf("continuous") >= 0) {
       try { await cam.ram.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch (e) { /* bỏ qua */ }
     }
@@ -555,14 +598,24 @@
     vong(cam.phien);
   }
 
+  // Nút Quét nổi: camera mở → thành nút Đóng (cùng 1 chỗ, ngón cái bấm lại là tắt)
+  function veNutQuet() {
+    document.body.classList.toggle("cam-mo", cam.mo);
+    $("nut-cam-icon").textContent = cam.mo ? "✕" : "📷";
+    $("nut-cam-chu").textContent = cam.mo ? "Đóng" : "Quét";
+    $("nut-cam").setAttribute("aria-label", cam.mo ? "Đóng camera" : "Mở camera quét mã QR");
+  }
+
   async function moCamera() {
     $("camera-chu").textContent = "Đưa mã QR trên đơn vào giữa khung";
+    $("canh-bao-quet").hidden = true;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       thongBao(location.protocol === "file:" ? "Camera chỉ dùng được khi mở trang qua địa chỉ https (trên mạng)." : "Trình duyệt này không mở được camera.");
       return;
     }
     cam.mo = true;
     $("camera").hidden = false;
+    veNutQuet();
     try {
       await khoiTaoBoDoc();
       await moLuong();
@@ -571,6 +624,7 @@
       cam.mo = false;
       dungLuong();
       $("camera").hidden = true;
+      veNutQuet();
       thongBao(location.protocol === "file:" ? "Camera chỉ dùng được khi mở trang qua địa chỉ https (trên mạng)."
         : "Không mở được camera. Hãy cho phép dùng camera trong cài đặt trình duyệt rồi thử lại.");
     }
@@ -580,18 +634,30 @@
     cam.mo = false;
     dungLuong();
     $("camera").hidden = true;
+    $("canh-bao-quet").hidden = true;
+    veNutQuet();
   }
 
-  $("nut-cam").addEventListener("click", function () { this.blur(); if (cam.mo) dongCamera(); else moCamera(); });
-  $("nut-dong-cam").addEventListener("click", dongCamera);
+  $("nut-cam").addEventListener("click", function () { this.blur(); moAm(); if (cam.mo) dongCamera(); else moCamera(); });
   $("nut-den").addEventListener("click", function () {
     if (!cam.ram) return;
     const moi = !cam.den;
     cam.ram.applyConstraints({ advanced: [{ torch: moi }] }).then(function () {
       cam.den = moi;
-      $("nut-den").textContent = moi ? "🔦 Tắt đèn" : "🔦 Đèn";
+      $("nut-den").setAttribute("aria-pressed", String(moi));
+      $("nut-den-chu").textContent = moi ? "Tắt đèn" : "Bật đèn";
     }).catch(function () { /* máy không hỗ trợ */ });
   });
+  // Đang gõ phím (ô nhập có con trỏ) → ẩn nút Quét để khỏi bấm nhầm; rời ô nhập → hiện lại
+  const laOGo = function (el) { return !!el && (el.tagName === "TEXTAREA" || el.tagName === "SELECT" || (el.tagName === "INPUT" && !/^(checkbox|radio|button|submit)$/.test(el.type))); };
+  document.addEventListener("focusin", function (e) { if (laOGo(e.target)) document.body.classList.add("dang-go"); });
+  document.addEventListener("focusout", function () {
+    setTimeout(function () { if (!laOGo(document.activeElement)) document.body.classList.remove("dang-go"); }, 150);
+  });
+  // Thanh Nộp ở đáy hiện → nút Quét nhích lên trên thanh đó
+  new MutationObserver(function () { document.body.classList.toggle("co-chan", !$("chan").hidden); })
+    .observe($("chan"), { attributes: true, attributeFilter: ["hidden"] });
+
   // Rời app thì tắt camera (tiết kiệm pin), quay lại thì mở lại
   document.addEventListener("visibilitychange", function () {
     if (!cam.mo) return;

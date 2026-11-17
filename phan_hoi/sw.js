@@ -4,7 +4,7 @@
 // Dữ liệu Google (đơn, kích thước, nộp phản hồi) KHÔNG đi qua bộ nhớ này.
 // Mỗi lần sửa file trong phan_hoi/ phải TĂNG số phiên bản dưới đây.
 // =========================================================================
-const TEN_BO_NHO = "phan-hoi-kt-v1";
+const TEN_BO_NHO = "phan-hoi-kt-v2";
 const CAC_FILE = ["./", "index.html", "app.js", "cau_hinh.js", "styles.css", "manifest.webmanifest",
   "icon-180.png", "icon-192.png", "icon-512.png", "may_quet_qr_worker.js", "vendor/zxing-reader.js", "vendor/zxing_reader.wasm"];
 

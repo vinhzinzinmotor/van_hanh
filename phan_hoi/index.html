@@ -23,12 +23,10 @@
     <!-- Camera quét QR (hiện khi bấm 📷) -->
     <section class="camera" id="camera" hidden aria-label="Quét mã QR bằng camera">
       <video id="video" playsinline muted></video>
-      <div class="khung-ngam" aria-hidden="true"></div>
+      <div class="khung-ngam" aria-hidden="true"><i class="goc g1"></i><i class="goc g2"></i><i class="goc g3"></i><i class="goc g4"></i><span class="tia-quet"></span></div>
       <p class="camera-chu" id="camera-chu">Đưa mã QR trên đơn vào giữa khung</p>
-      <div class="camera-nut">
-        <button type="button" id="nut-den" hidden>🔦 Đèn</button>
-        <button type="button" id="nut-dong-cam">✕ Đóng</button>
-      </div>
+      <div class="canh-bao-quet" id="canh-bao-quet" role="alert" hidden><b>⚠ KHÔNG TÌM THẤY ĐƠN</b><span id="canh-bao-quet-chu"></span></div>
+      <button type="button" class="nut-den" id="nut-den" hidden aria-pressed="false"><span aria-hidden="true">🔦</span><small id="nut-den-chu">Bật đèn</small></button>
     </section>
 
     <main class="than">
@@ -39,7 +37,6 @@
         <div class="tim">
           <input id="o-tim" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
             placeholder="Gõ vài ký tự mã đơn…" aria-label="Mã đơn hàng" />
-          <button type="button" class="nut-cam" id="nut-cam" title="Quét mã QR bằng camera">📷</button>
         </div>
         <ul class="goi-y" id="goi-y" hidden></ul>
         <p class="loi-tim" id="loi-tim" hidden></p>
@@ -54,6 +51,9 @@
 
       <p class="ket-qua" id="ket-qua" hidden></p>
     </main>
+
+    <!-- Nút Quét nổi ở góc phải dưới (vừa ngón cái tay phải). Camera mở thì thành nút Đóng, đang gõ phím thì ẩn -->
+    <button type="button" class="nut-quet" id="nut-cam" aria-label="Mở camera quét mã QR"><span class="nut-quet-icon" id="nut-cam-icon" aria-hidden="true">📷</span><span class="nut-quet-chu" id="nut-cam-chu">Quét</span></button>
 
     <footer class="chan" id="chan" hidden>
       <span id="dem-sua">Chưa sửa mã nào</span>
