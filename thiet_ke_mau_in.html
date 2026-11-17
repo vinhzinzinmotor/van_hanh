@@ -73,13 +73,29 @@
 
         <section class="muc" aria-labelledby="h-dau">
           <h2 id="h-dau"><span class="so-buoc">4</span>Đầu &amp; chân đơn</h2>
-          <div class="dong"><label for="nhan-vd">Nhãn vận đơn</label><input class="o-nhap" id="nhan-vd" maxlength="60" /></div>
-          <div class="dong"><label for="nhan-md">Nhãn mã đơn</label><input class="o-nhap" id="nhan-md" maxlength="60" /></div>
-          <div class="dong">
-            <label for="co-ma-don">Cỡ mã đơn</label>
-            <div class="keo"><input type="range" id="co-ma-don" min="8" max="40" step="1" list="moc-ma-don" /><datalist id="moc-ma-don"><option id="moc-ma-don-gt"></option></datalist><span class="gia-tri" id="co-ma-don-gt"></span></div>
+          <div class="khoi-dau-don" aria-label="Chữ ở đầu đơn">
+            <span class="goi-y"><b>Chữ ở đầu đơn</b> — chọn phần cần chỉnh (hoặc bấm thẳng lên đầu đơn ở bản in thử)</span>
+            <div class="chon-phan" id="chon-phan-dau"></div>
+            <div class="hop-nhan-dau" id="hop-nhan-dau">
+              <label for="o-nhan-dau" class="goi-y"><b>Nội dung chữ</b></label>
+              <div class="dong"><input class="o-nhap" id="o-nhan-dau" maxlength="60" /><button type="button" class="nut-md" id="nhan-dau-md">↺ Về mặc định</button></div>
+              <span class="ghi-md" id="nhan-dau-ghi"></span>
+            </div>
+            <p class="goi-y" id="ma-dau-ghi" hidden></p>
+            <label class="cong-tac"><input type="checkbox" id="dau-ca-dong" /> Chỉnh kiểu chữ nhãn và mã cùng lúc (cả dòng)</label>
+            <div class="dong">
+              <span class="nhan-dong">Cỡ chữ</span>
+              <div class="keo"><input type="range" id="dau-co" min="8" max="40" step="1" list="moc-dau-co" aria-label="Cỡ chữ đầu đơn" /><datalist id="moc-dau-co"><option id="moc-dau-co-gt"></option></datalist><span class="gia-tri" id="dau-co-gt"></span></div>
+            </div>
+            <div class="dong"><span class="nhan-dong"></span><span class="ghi-md" id="dau-co-md-chu"></span><button type="button" class="nut-md" id="dau-co-md">↺ Về mặc định</button></div>
+            <div class="dong"><span class="nhan-dong">Đậm nhạt</span><div class="nhom-chon" id="dau-kieu"></div></div>
+            <div class="dong">
+              <span class="nhan-dong">Giãn chữ</span>
+              <div class="keo"><input type="range" id="dau-gian" min="0" max="8" step="0.5" aria-label="Giãn chữ đầu đơn" /><span class="gia-tri" id="dau-gian-gt"></span></div>
+            </div>
+            <div class="dong"><span class="nhan-dong"></span><span class="ghi-md" id="dau-gian-md-chu"></span><button type="button" class="nut-md" id="dau-gian-md">↺ Về mặc định</button></div>
+            <div class="dong" style="align-items: flex-start"><span class="nhan-dong">Phông chữ</span><div class="ds-phong" id="dau-phong"></div></div>
           </div>
-          <div class="dong"><span class="nhan-dong"></span><span class="ghi-md" id="co-ma-don-md-chu"></span><button type="button" class="nut-md" id="co-ma-don-md">↺ Về mặc định</button></div>
           <div class="dong"><label for="nhan-tong">Nhãn tổng tiền</label><input class="o-nhap" id="nhan-tong" maxlength="60" /></div>
           <div class="dong" style="gap: 18px">
             <span class="nhan-dong"></span>

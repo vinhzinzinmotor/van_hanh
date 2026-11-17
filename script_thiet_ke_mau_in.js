@@ -100,11 +100,32 @@
     };
   }
 
+  // ── CHỮ Ở ĐẦU ĐƠN (giai đoạn D): 4 phần, phần đi cặp, kiểu mặc định = đúng mẫu gốc khi in ──
+  const PHAN_DAU = {
+    nhan_van_don: { ten: "Nhãn vận đơn", cap: "ma_van_don", laNhan: true },
+    ma_van_don: { ten: "Mã vận đơn", cap: "nhan_van_don" },
+    nhan_ma_don: { ten: "Nhãn mã đơn", cap: "ma_don", laNhan: true },
+    ma_don: { ten: "Mã đơn", cap: "nhan_ma_don" },
+  };
+  const TEN_DAM = { thuong: "Thường", dam: "Đậm", rat_dam: "Rất đậm" };
+  // Mặc định khi in (style.css): vận đơn theo chữ chung 11px (nhãn đậm, mã thường); dòng mã đơn rất đậm, giãn 1px,
+  // cỡ = "Cỡ chữ mã đơn" đã lưu trước đây (CO_CHU_MA_DON, mặc định 16px)
+  function mdDau(p) {
+    const laDongMaDon = p === "nhan_ma_don" || p === "ma_don";
+    return { co: laDongMaDon ? nhap.trang.coChuMaDon : 11, kieu: p === "nhan_van_don" ? "dam" : p === "ma_van_don" ? "thuong" : "rat_dam", gian: laDongMaDon ? 1 : 0 };
+  }
+
   // Đưa mẫu về đúng dạng lưu (giống mauDeLuu trong Apps Script), thứ tự khóa cố định để so sánh được
   function chuanHoa(m) {
     const t = m.trang || {};
     const trong = function (v) { return v === undefined || v === "" ? null : v; };
     const macDinh = function (v, khoa) { return v === undefined ? MauIn.TRANG_MAC_DINH[khoa] : v; };
+    const kd = m.kieuDauDon || {}; // bản lưu đời trước GĐ D không có → tất cả để trống (= mẫu gốc)
+    const kieuDauDon = {};
+    MauIn.DS.PHAN_DAU_DON.forEach(function (p) {
+      const v = kd[p] || {};
+      kieuDauDon[p] = { coChu: trong(v.coChu), kieuChu: trong(v.kieuChu), gianChu: trong(v.gianChu), phong: trong(v.phong) };
+    });
     return {
       bat: m.bat,
       dauDon: { nhanMaVanDon: m.dauDon.nhanMaVanDon, nhanMaDon: m.dauDon.nhanMaDon },
@@ -123,6 +144,7 @@
         hienTongTien: macDinh(t.hienTongTien, "hienTongTien"), chanDon: macDinh(t.chanDon, "chanDon"),
         hienQr: macDinh(t.hienQr, "hienQr"), hienThung: macDinh(t.hienThung, "hienThung"),
       },
+      kieuDauDon: kieuDauDon,
     };
   }
 
@@ -146,6 +168,7 @@
   let banDau = JSON.stringify(nhap); // mẫu đang dùng (lúc tải / lần lưu gần nhất)
   let dangDung = { daTai: false, phienBan: null, bat: false, capNhat: "" };
   let cotChon = "sku";
+  let phanDauChon = "nhan_van_don"; // phần đầu đơn đang chỉnh
   const lichSuThaoTac = []; // các bước để Hoàn tác
   const lamLaiThaoTac = []; // các bước vừa hoàn tác, để Làm lại
   let nhomDangMo = null; // kéo thanh trượt / gõ chữ liên tục = 1 bước hoàn tác
@@ -296,22 +319,54 @@
 
   function veDauChan() {
     const dat = function (id, v) { if (document.activeElement !== $(id)) $(id).value = v; };
-    dat("nhan-vd", nhap.dauDon.nhanMaVanDon);
-    dat("nhan-md", nhap.dauDon.nhanMaDon);
     dat("nhan-tong", nhap.nhanTongTien);
     dat("chan-don", nhap.trang.chanDon);
-    const md = MauIn.TRANG_MAC_DINH.coChuMaDon;
-    $("co-ma-don").value = nhap.trang.coChuMaDon;
-    $("co-ma-don-gt").textContent = nhap.trang.coChuMaDon + " px";
-    $("moc-ma-don-gt").value = md;
-    const laMd = nhap.trang.coChuMaDon === md;
-    $("co-ma-don-md-chu").innerHTML = laMd ? "✓ Đang dùng cỡ mặc định (" + md + " px)" : "Mặc định: <b>" + md + " px</b>";
-    $("co-ma-don-md").disabled = laMd;
+    veDauDon();
     $("hien-tong").checked = nhap.trang.hienTongTien;
     $("khoanh-tron").checked = nhap.khoanhTronSoLuong;
     $("hien-qr").checked = nhap.trang.hienQr;
     $("hien-thung").checked = nhap.trang.hienThung;
     $("dem-chan-don").textContent = nhap.trang.chanDon.length + " / 200";
+  }
+
+  // Khối "Chữ ở đầu đơn": chọn phần → sửa nội dung chữ (nhãn) + cỡ, đậm nhạt, giãn chữ, phông
+  const chuNhanDau = function (p) { return p === "nhan_van_don" ? nhap.dauDon.nhanMaVanDon : nhap.dauDon.nhanMaDon; };
+  const chuNhanGoc = function (p) { return p === "nhan_van_don" ? MauIn.MAU_MAC_DINH.dauDon.nhanMaVanDon : MauIn.MAU_MAC_DINH.dauDon.nhanMaDon; };
+  const cacPhanDau = function () { return $("dau-ca-dong").checked ? [phanDauChon, PHAN_DAU[phanDauChon].cap] : [phanDauChon]; };
+  function veDauDon() {
+    const p = phanDauChon, info = PHAN_DAU[p], v = nhap.kieuDauDon[p], md = mdDau(p);
+    const dangChon = cacPhanDau();
+    const mauChu = { nhan_van_don: chuNhanDau("nhan_van_don"), ma_van_don: DON_MAU.vandon, nhan_ma_don: chuNhanDau("nhan_ma_don"), ma_don: DON_MAU.maDon };
+    $("chon-phan-dau").innerHTML = Object.keys(PHAN_DAU).map(function (q) {
+      return '<button type="button" data-phan-dau="' + q + '" aria-pressed="' + (dangChon.indexOf(q) >= 0) + '"><b>' + PHAN_DAU[q].ten + "</b><small>" + esc(mauChu[q]) + "</small></button>";
+    }).join("");
+    $("hop-nhan-dau").hidden = !info.laNhan;
+    $("ma-dau-ghi").hidden = !!info.laNhan;
+    if (info.laNhan) {
+      if (document.activeElement !== $("o-nhan-dau")) $("o-nhan-dau").value = chuNhanDau(p);
+      $("o-nhan-dau").setAttribute("aria-label", "Nội dung " + info.ten.toLowerCase());
+      const laGoc = chuNhanDau(p) === chuNhanGoc(p);
+      $("nhan-dau-md").disabled = laGoc;
+      $("nhan-dau-ghi").innerHTML = laGoc ? "✓ Đang dùng chữ mặc định “" + esc(chuNhanGoc(p)) + "”. Gõ để đổi, ví dụ <b>MVĐ:</b>" : "Mặc định: <b>" + esc(chuNhanGoc(p)) + "</b>";
+    } else {
+      $("ma-dau-ghi").innerHTML = "Nội dung <b>" + info.ten.toLowerCase() + "</b> lấy từ từng đơn hàng nên không sửa chữ ở đây — chỉ chỉnh cách hiển thị. Muốn đổi chữ phía trước, chọn <b>" + PHAN_DAU[info.cap].ten + "</b>.";
+    }
+    const co = v.coChu != null ? v.coChu : md.co;
+    $("dau-co").value = co;
+    $("dau-co-gt").textContent = co + " px";
+    $("moc-dau-co-gt").value = md.co;
+    $("dau-co-md-chu").innerHTML = v.coChu == null ? "✓ Đang dùng cỡ mặc định (" + md.co + " px)" : "Mặc định: <b>" + md.co + " px</b>";
+    $("dau-co-md").disabled = v.coChu == null;
+    nhomChon("dau-kieu", [["md", "Mặc định <small>(" + TEN_DAM[md.kieu].toLowerCase() + ")</small>"], ["thuong", "Thường"], ["dam", "<b>Đậm</b>"], ["rat_dam", "<b>Rất đậm</b>"]], v.kieuChu || "md", "dau-kieu");
+    const gian = v.gianChu != null ? v.gianChu : md.gian;
+    $("dau-gian").value = gian;
+    $("dau-gian-gt").textContent = String(gian).replace(".", ",") + " px";
+    $("dau-gian-md-chu").innerHTML = v.gianChu == null ? "✓ Đang dùng mặc định (" + md.gian + " px)" : "Mặc định: <b>" + md.gian + " px</b>";
+    $("dau-gian-md").disabled = v.gianChu == null;
+    $("dau-phong").innerHTML = [null].concat(MauIn.DS.PHONG).map(function (f) {
+      const fam = f ? "'" + f + "', sans-serif" : "'Segoe UI', system-ui, sans-serif";
+      return '<button type="button" data-dau-phong="' + (f || "") + '" aria-pressed="' + ((v.phong || null) === f) + '"><span class="mau-chu" style="font-family:' + fam + '">0O 2607 SPX</span><small>' + (f || "Mặc định (phông hệ thống)") + "</small></button>";
+    }).join("");
   }
 
   // =========================================================================
@@ -400,7 +455,10 @@
     if (!doiCuoi) return;
     let cacO = [];
     if (doiCuoi.indexOf("cot:") === 0) cacO = Array.prototype.slice.call(oCuaCot(mv, doiCuoi.slice(4)));
-    else {
+    else if (doiCuoi.indexOf("dau:") === 0) {
+      cacO = Array.prototype.slice.call(docXem.querySelectorAll(".mi-" + doiCuoi.slice(4).replace(/_/g, "-")));
+      if (!cacO.length) cacO = Array.prototype.slice.call(docXem.querySelectorAll(".invoice-head")); // mẫu gốc: chớp cả đầu đơn
+    } else {
       const chon = { dau: ".invoice-head", maDon: ".oid-value", tong: ".inv-total", chan: ".mi-chan-don", bang: "table.inv-table", qr: ".invoice-head", thung: ".mi-thung" }[doiCuoi];
       if (chon) cacO = Array.prototype.slice.call(docXem.querySelectorAll(chon));
     }
@@ -436,6 +494,15 @@
       cuonToi("h-chu");
       return;
     }
+    const phanDau = e.target.closest(".mi-nhan-van-don,.mi-ma-van-don,.mi-nhan-ma-don,.mi-ma-don");
+    if (phanDau) {
+      const lop = Array.prototype.find.call(phanDau.classList, function (l) { return /^mi-(nhan|ma)-/.test(l); });
+      phanDauChon = lop.slice(3).replace(/-/g, "_");
+      doiCuoi = "dau:" + phanDauChon;
+      veLai();
+      cuonToi("h-dau");
+      return;
+    }
     if (e.target.closest(".invoice-head,.inv-total,.mi-chan-don")) cuonToi("h-dau");
   }
 
@@ -459,6 +526,19 @@
     if (a.trang.chanDon !== b.trang.chanDon) ds.push(b.trang.chanDon ? "Dòng chữ cuối đơn: “" + b.trang.chanDon + "”" : "Bỏ dòng chữ cuối đơn");
     if (a.dauDon.nhanMaVanDon !== b.dauDon.nhanMaVanDon) ds.push("Nhãn vận đơn: “" + a.dauDon.nhanMaVanDon + "” → “" + b.dauDon.nhanMaVanDon + "”");
     if (a.dauDon.nhanMaDon !== b.dauDon.nhanMaDon) ds.push("Nhãn mã đơn: “" + a.dauDon.nhanMaDon + "” → “" + b.dauDon.nhanMaDon + "”");
+    const moTaDau = function (k, v) {
+      if (v == null) return "mặc định";
+      if (k === "coChu" || k === "gianChu") return String(v).replace(".", ",") + " px";
+      if (k === "kieuChu") return TEN_DAM[v].toLowerCase();
+      return v;
+    };
+    const TEN_MUC_DAU = { coChu: "cỡ chữ", kieuChu: "đậm nhạt", gianChu: "giãn chữ", phong: "phông" };
+    Object.keys(PHAN_DAU).forEach(function (p) {
+      const o = (a.kieuDauDon || {})[p] || {}, n = b.kieuDauDon[p];
+      ["coChu", "kieuChu", "gianChu", "phong"].forEach(function (k) {
+        if ((o[k] == null ? null : o[k]) !== n[k]) ds.push(PHAN_DAU[p].ten + ": " + TEN_MUC_DAU[k] + " " + moTaDau(k, o[k]) + " → " + moTaDau(k, n[k]));
+      });
+    });
     if (a.nhanTongTien !== b.nhanTongTien) ds.push("Nhãn tổng tiền: “" + a.nhanTongTien + "” → “" + b.nhanTongTien + "”");
     if (a.cot.map(function (c) { return c.loai; }).join() !== b.cot.map(function (c) { return c.loai; }).join()) {
       ds.push("Thứ tự cột: " + b.cot.map(function (c) { return c.tieuDe; }).join(" → "));
@@ -922,11 +1002,52 @@
     });
     $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") e.target.blur(); });
   }
-  theoNhan("nhan-vd", function () { return nhap.dauDon.nhanMaVanDon; }, function (v) { nhap.dauDon.nhanMaVanDon = v; }, "dau");
-  theoNhan("nhan-md", function () { return nhap.dauDon.nhanMaDon; }, function (v) { nhap.dauDon.nhanMaDon = v; }, "maDon");
   theoNhan("nhan-tong", function () { return nhap.nhanTongTien; }, function (v) { nhap.nhanTongTien = v; }, "tong");
-  $("co-ma-don").addEventListener("input", function (e) { doiGop("coMaDon", "maDon", function () { nhap.trang.coChuMaDon = +e.target.value; }); });
-  $("co-ma-don-md").addEventListener("click", function () { doi("maDon", function () { nhap.trang.coChuMaDon = MauIn.TRANG_MAC_DINH.coChuMaDon; }); });
+
+  // Chữ ở đầu đơn (giai đoạn D)
+  $("chon-phan-dau").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-phan-dau]");
+    if (!b) return;
+    phanDauChon = b.dataset.phanDau;
+    doiCuoi = "dau:" + phanDauChon;
+    veLai();
+  });
+  $("dau-ca-dong").addEventListener("change", function () { veDauDon(); });
+  // Đặt 1 mục kiểu chữ cho phần đang chọn (và phần đi cặp nếu bật "cả dòng"). Bằng mặc định → để trống
+  const datDau = function (k, v) {
+    cacPhanDau().forEach(function (p) {
+      const md = mdDau(p);
+      nhap.kieuDauDon[p][k] = v != null && ((k === "coChu" && v === md.co) || (k === "gianChu" && v === md.gian)) ? null : v;
+    });
+  };
+  const choDau = function () { return "dau:" + phanDauChon; };
+  $("dau-co").addEventListener("input", function (e) { doiGop("dauCo:" + phanDauChon, choDau(), function () { datDau("coChu", +e.target.value); }); });
+  $("dau-co-md").addEventListener("click", function () { doi(choDau(), function () { datDau("coChu", null); }); });
+  $("dau-gian").addEventListener("input", function (e) { doiGop("dauGian:" + phanDauChon, choDau(), function () { datDau("gianChu", +e.target.value); }); });
+  $("dau-gian-md").addEventListener("click", function () { doi(choDau(), function () { datDau("gianChu", null); }); });
+  $("dau-kieu").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-dau-kieu]");
+    if (b) doi(choDau(), function () { datDau("kieuChu", b.dataset.dauKieu === "md" ? null : b.dataset.dauKieu); });
+  });
+  $("dau-phong").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-dau-phong]");
+    if (b) doi(choDau(), function () { datDau("phong", b.dataset.dauPhong || null); });
+  });
+  // Nội dung chữ của nhãn (chỉ nhãn — chữ của mã lấy từ đơn hàng)
+  $("o-nhan-dau").addEventListener("change", function (e) {
+    const p = phanDauChon;
+    if (!PHAN_DAU[p].laNhan) return;
+    const v = sach(e.target.value.trim());
+    if (!v) { thongBao("Nhãn không được để trống."); e.target.value = chuNhanDau(p); return; }
+    if (v === chuNhanDau(p)) { e.target.value = v; return; }
+    doi("dau:" + p, function () { if (p === "nhan_van_don") nhap.dauDon.nhanMaVanDon = v; else nhap.dauDon.nhanMaDon = v; });
+  });
+  $("o-nhan-dau").addEventListener("keydown", function (e) { if (e.key === "Enter") e.target.blur(); });
+  $("nhan-dau-md").addEventListener("click", function () {
+    const p = phanDauChon;
+    if (!PHAN_DAU[p].laNhan) return;
+    doi("dau:" + p, function () { if (p === "nhan_van_don") nhap.dauDon.nhanMaVanDon = chuNhanGoc(p); else nhap.dauDon.nhanMaDon = chuNhanGoc(p); });
+  });
   $("hien-tong").addEventListener("change", function (e) { doi("tong", function () { nhap.trang.hienTongTien = e.target.checked; }); });
   $("khoanh-tron").addEventListener("change", function (e) { doi("cot:so_luong", function () { nhap.khoanhTronSoLuong = e.target.checked; }); });
   $("hien-qr").addEventListener("change", function (e) { doi("qr", function () { nhap.trang.hienQr = e.target.checked; }); });

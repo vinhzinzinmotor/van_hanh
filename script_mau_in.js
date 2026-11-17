@@ -20,6 +20,8 @@
 //   trái mã đơn. Dữ liệu từ script_kich_thuoc.js, QR từ thu_vien_qr.js (2 file tự nạp bên dưới).
 // GIAI ĐOẠN B: 2 cài đặt HIEN_QR, HIEN_THUNG trong sheet (bật / tắt mã QR, dòng "Thùng"). Sheet chưa có dòng
 //   hoặc mẫu lưu tạm đời cũ → coi như BẬT (giống giai đoạn A). PHẢI giống apps_script/mau_in_don.gs.
+// GIAI ĐOẠN D: bảng PHAN_DAU_DON trong sheet — chỉnh riêng 4 phần đầu đơn (nhãn vận đơn, mã vận đơn, nhãn mã đơn,
+//   mã đơn): cỡ chữ, đậm nhạt, giãn chữ, phông. Ô trống / sheet chưa có bảng = giữ kiểu như mẫu gốc.
 // =========================================================================
 
 (function () {
@@ -62,6 +64,15 @@
   const KHO_GIAY = ["A6", "A5", "A4"];
   const KIEU_CHU = ["dam", "thuong"];
   const PHONG = ["Arial", "Tahoma", "Verdana", "Times New Roman", "Courier New", "Consolas"];
+  // Đầu đơn (giai đoạn D): 4 phần chỉnh riêng. "rat_dam" = 800 = độ đậm mã đơn đang in ở mẫu gốc
+  const PHAN_DAU_DON = ["nhan_van_don", "ma_van_don", "nhan_ma_don", "ma_don"];
+  const KIEU_CHU_DAU_DON = ["thuong", "dam", "rat_dam"];
+  const DO_DAM_DAU_DON = { thuong: 400, dam: 700, rat_dam: 800 };
+  function kieuDauDonTrong() {
+    const o = {};
+    PHAN_DAU_DON.forEach(function (p) { o[p] = { coChu: null, kieuChu: null, gianChu: null, phong: null }; });
+    return o;
+  }
 
   // Giá trị mặc định của các cài đặt chung thêm ở giai đoạn 3 (= kiểu dáng hiện tại trong style.css)
   // hienQr / hienThung (giai đoạn B): sheet chưa có dòng → coi như BẬT (giống giai đoạn A)
@@ -216,9 +227,13 @@
     let html = `
       <div class="invoice-box${tc ? " mau-tuy-chinh" : ""}" data-copy-text="${ctx.copyText.replace(/"/g, "&quot;")}">
         <div class="invoice-head">
-          <div><b>${esc(mau.dauDon.nhanMaVanDon)}</b> ${don.vandon}</div>
+          ${tc
+            ? `<div><b class="mi-nhan-van-don">${esc(mau.dauDon.nhanMaVanDon)}</b> <span class="mi-ma-van-don">${don.vandon}</span></div>`
+            : `<div><b>${esc(mau.dauDon.nhanMaVanDon)}</b> ${don.vandon}</div>`}
           <div style="display:flex;align-items:center;gap:10px;">
-            ${tc && mau.trang.hienQr !== false ? maQr(ctx.idDon) : ""}<span class="oid-value">${esc(mau.dauDon.nhanMaDon)} ${ctx.idDon}</span>
+            ${tc && mau.trang.hienQr !== false ? maQr(ctx.idDon) : ""}${tc
+              ? `<span class="oid-value"><span class="mi-nhan-ma-don">${esc(mau.dauDon.nhanMaDon)}</span> <span class="mi-ma-don">${ctx.idDon}</span></span>`
+              : `<span class="oid-value">${esc(mau.dauDon.nhanMaDon)} ${ctx.idDon}</span>`}
             <button class="btn-copy-don" onclick="copyDonHang(this)">📋 Copy</button>
           </div>
         </div>
@@ -291,6 +306,21 @@
     return p.map(function (x) { return x + " !important"; }).join(";");
   }
 
+  // CSS cho 4 phần đầu đơn — chỉ mục đã chỉnh (để trống = giữ kiểu như mẫu gốc)
+  function cssDauDon(mau) {
+    const k = mau.kieuDauDon || {};
+    return PHAN_DAU_DON.map(function (p) {
+      const v = k[p] || {};
+      const t = [];
+      if (v.coChu != null) t.push("font-size:" + v.coChu + "px");
+      if (v.kieuChu != null) t.push("font-weight:" + DO_DAM_DAU_DON[v.kieuChu]);
+      if (v.gianChu != null) t.push("letter-spacing:" + v.gianChu + "px");
+      if (v.phong != null) t.push('font-family:"' + v.phong + '", sans-serif');
+      return t.length ? ".invoice-box.mau-tuy-chinh .invoice-head .mi-" + p.replace(/_/g, "-") + "{" +
+        t.map(function (x) { return x + " !important"; }).join(";") + "}\n" : "";
+    }).join("");
+  }
+
   function sinhCss(mau) {
     const chon = function (la, loai) { return ".invoice-box.mau-tuy-chinh table.inv-table " + la + ".mi-" + loai; };
     const khoi = function (cheDo) {
@@ -299,6 +329,7 @@
           chon("td", cot.loai) + "{" + luatCot(cot, cheDo, "td") + "}";
       }).join("\n") + "\n" +
         ".invoice-box.mau-tuy-chinh .invoice-head .oid-value{font-size:" + mau.trang.coChuMaDon + "px !important}\n" +
+        cssDauDon(mau) +
         ".invoice-box.mau-tuy-chinh .mi-chan-don{margin-top:8px;text-align:center;font-size:12px;white-space:pre-line}\n" +
         // Mã QR bên trái mã đơn · dòng "Thùng: X" bên trái tổng tiền — chỉ đen trắng, không tô màu
         ".invoice-box.mau-tuy-chinh .mi-qr{width:14mm;height:14mm;display:block;flex:none}\n" +
@@ -357,10 +388,11 @@
   // Sheet đời cũ (chưa có cài đặt giai đoạn 3) → các mục mới lấy giá trị mặc định = kiểu dáng hiện tại.
   function phanTichSheet(bang) {
     const theoKhoa = {};
-    let dongTieuDeCot = -1;
+    let dongTieuDeCot = -1, dongDauDon = -1;
     (bang || []).forEach(function (dong, i) {
       const khoa = dong && typeof dong[0] === "string" ? dong[0].trim() : "";
       if (khoa === "THU_TU") dongTieuDeCot = i;
+      else if (khoa === "PHAN_DAU_DON") dongDauDon = i;
       else if (khoa && dongTieuDeCot < 0) theoKhoa[khoa] = dong[1];
     });
 
@@ -369,6 +401,7 @@
       for (let i = dongTieuDeCot + 1; i < bang.length; i++) {
         const d = bang[i] || [];
         if (d.length === 0 || d.every(function (o) { return o === "" || o == null; })) break; // hết bảng cột
+        if (typeof d[0] === "string" && d[0].trim() === "PHAN_DAU_DON") break; // tới bảng đầu đơn
         cot.push({
           thuTu: d[0],
           loai: typeof d[1] === "string" ? d[1].trim() : d[1],
@@ -380,6 +413,16 @@
           kieuChu: chuHoacTrong(d[7]),
           phong: chuHoacTrong(d[8]),
         });
+      }
+    }
+    // Bảng PHAN_DAU_DON (giai đoạn D): mỗi dòng 1 phần đầu đơn. Chưa có bảng → tất cả để trống (= mẫu gốc)
+    const kieuDauDon = kieuDauDonTrong();
+    if (dongDauDon >= 0) {
+      for (let i = dongDauDon + 1; i < bang.length; i++) {
+        const d = bang[i] || [];
+        const phan = typeof d[0] === "string" ? d[0].trim() : d[0];
+        if (phan === "" || phan == null) break;
+        kieuDauDon[phan] = { coChu: soHoacTrong(d[1]), kieuChu: chuHoacTrong(d[2]), gianChu: soHoacTrong(d[3]), phong: chuHoacTrong(d[4]) };
       }
     }
     // Sắp theo THU_TU nếu tất cả đều là số (bằng nhau thì giữ thứ tự dòng); không thì giữ thứ tự dòng trong sheet
@@ -405,6 +448,7 @@
         hienThung: coKhoa("HIEN_THUNG") ? theoKhoa.HIEN_THUNG : TRANG_MAC_DINH.hienThung,
       },
       cot: cot,
+      kieuDauDon: kieuDauDon,
     };
   }
 
@@ -438,6 +482,24 @@
       else if (/[<>]/.test(t.chanDon)) loi.push("CHAN_DON không được chứa ký tự < >");
       if (typeof t.hienQr !== "boolean") loi.push("HIEN_QR phải là ô đánh dấu ☑/☐");
       if (typeof t.hienThung !== "boolean") loi.push("HIEN_THUNG phải là ô đánh dấu ☑/☐");
+    }
+    const kd = mau.kieuDauDon;
+    if (!kd || typeof kd !== "object") loi.push("Thiếu bảng PHAN_DAU_DON");
+    else {
+      Object.keys(kd).forEach(function (p) {
+        if (PHAN_DAU_DON.indexOf(p) < 0) loi.push("PHAN_DAU_DON: phần '" + p + "' không hợp lệ (chỉ có " + PHAN_DAU_DON.join(", ") + ")");
+      });
+      PHAN_DAU_DON.forEach(function (p) {
+        const v = kd[p], ten = "PHAN_DAU_DON " + p;
+        if (!v || typeof v !== "object") { loi.push(ten + ": thiếu"); return; }
+        if (v.coChu !== null) soTrongKhoang(v.coChu, ten + ": CO_CHU", 8, 40);
+        if (v.kieuChu !== null && KIEU_CHU_DAU_DON.indexOf(v.kieuChu) < 0) loi.push(ten + ": KIEU_CHU phải để trống hoặc là " + KIEU_CHU_DAU_DON.join(", "));
+        if (v.gianChu !== null) {
+          soTrongKhoang(v.gianChu, ten + ": GIAN_CHU", 0, 8);
+          if (typeof v.gianChu === "number" && Math.round(v.gianChu * 2) !== v.gianChu * 2) loi.push(ten + ": GIAN_CHU mỗi nấc 0,5");
+        }
+        if (v.phong !== null && PHONG.indexOf(v.phong) < 0) loi.push(ten + ": PHONG phải để trống hoặc là " + PHONG.join(", "));
+      });
     }
     if (!Array.isArray(mau.cot) || mau.cot.length === 0 || mau.cot.length > 12) {
       loi.push("Phải có 1–12 cột");
@@ -482,6 +544,7 @@
         hienTongTien: mau.trang.hienTongTien, chanDon: mau.trang.chanDon,
         hienQr: mau.trang.hienQr, hienThung: mau.trang.hienThung,
       },
+      kieuDauDon: JSON.parse(JSON.stringify(mau.kieuDauDon)),
     };
   }
 
@@ -491,6 +554,7 @@
       if (mau.trang.hienQr === undefined) mau.trang.hienQr = TRANG_MAC_DINH.hienQr;
       if (mau.trang.hienThung === undefined) mau.trang.hienThung = TRANG_MAC_DINH.hienThung;
     }
+    if (mau && typeof mau === "object" && mau.kieuDauDon === undefined) mau.kieuDauDon = kieuDauDonTrong(); // đời trước GĐ D
     return mau;
   }
 
@@ -573,6 +637,6 @@
     SHEET_CONFIG: SHEET_CONFIG,
     KIEU_MAC_DINH: KIEU_MAC_DINH,
     TRANG_MAC_DINH: TRANG_MAC_DINH,
-    DS: { LOAI_COT: LOAI_COT, CAN_LE: CAN_LE_HOP_LE, KHO_GIAY: KHO_GIAY, KIEU_CHU: KIEU_CHU, PHONG: PHONG },
+    DS: { LOAI_COT: LOAI_COT, CAN_LE: CAN_LE_HOP_LE, KHO_GIAY: KHO_GIAY, KIEU_CHU: KIEU_CHU, PHONG: PHONG, PHAN_DAU_DON: PHAN_DAU_DON, KIEU_CHU_DAU_DON: KIEU_CHU_DAU_DON },
   };
 })();

@@ -97,6 +97,14 @@ button { cursor: pointer; }
 .ten-cot:hover, .ten-cot:focus { border-color: var(--vien); background: var(--nen); }
 .loai-cot { font-size: 11px; color: var(--chu-phu); white-space: nowrap; }
 
+/* Chữ ở đầu đơn (giai đoạn D) */
+.khoi-dau-don { border: 1px solid var(--vien); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 10px; background: var(--nen); }
+.chon-phan { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.chon-phan button { border: 1px solid var(--vien); background: var(--the); border-radius: 10px; padding: 8px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chon-phan button[aria-pressed="true"] { border-color: var(--nhan); background: var(--nhan-nhat); box-shadow: 0 0 0 2px var(--nhan-nhat); }
+.chon-phan b { font-size: 13px; }
+.chon-phan small { font-size: 11px; color: var(--chu-phu); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hop-nhan-dau { background: var(--the); border: 1px solid var(--vien); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .ds-phong { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; flex: 1; }
 .ds-phong button { border: 1px solid var(--vien); background: var(--the); border-radius: 8px; padding: 6px 8px; text-align: left; display: flex; flex-direction: column; gap: 2px; }
 .ds-phong button[aria-pressed="true"] { border-color: var(--nhan); background: var(--nhan-nhat); }
