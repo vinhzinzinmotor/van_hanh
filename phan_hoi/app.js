@@ -551,16 +551,17 @@
     ls.luc = bayGio;
     // Đọc được 2 lần liền cùng 1 mã lạ mới báo (tránh báo nhầm); giữ mã trong khung thì 3 giây báo lại 1 lần
     if (ls.lan === 2 || (ls.lan > 2 && bayGio - (ls.bao || 0) > 3000)) {
-      if (!duLieu.daTai) { $("camera-chu").textContent = "Đang tải danh sách đơn, chờ một chút…"; return; }
+      if (!duLieu.daTai) { $("camera-chu").textContent = "Đang tải đơn…"; return; }
       ls.bao = bayGio;
       nhayKhung("loi");
       keu("loi");
-      $("canh-bao-quet-chu").textContent = "Mã \"" + tho.slice(0, 40) + "\" không có trong đơn " + (CFG.SO_NGAY_TIM_DON || 45) + " ngày gần nhất. Kiểm tra lại đơn, hoặc đóng camera để gõ mã.";
+      $("canh-bao-quet-chu").textContent = tho.slice(0, 40); // tiêu đề đã nói không có đơn; dòng này chỉ ghi mã vừa quét
       const cb = $("canh-bao-quet");
       cb.hidden = false;
+      $("camera").classList.add("co-canh-bao"); // viền đỏ suốt lúc còn cảnh báo
       lacLai(cb);
       clearTimeout(xetMa.h);
-      xetMa.h = setTimeout(function () { cb.hidden = true; }, 3500);
+      xetMa.h = setTimeout(function () { cb.hidden = true; $("camera").classList.remove("co-canh-bao"); }, 3500);
     }
   }
 
@@ -607,8 +608,9 @@
   }
 
   async function moCamera() {
-    $("camera-chu").textContent = "Đưa mã QR trên đơn vào giữa khung";
+    $("camera-chu").textContent = "Đưa QR vào khung";
     $("canh-bao-quet").hidden = true;
+    $("camera").classList.remove("co-canh-bao");
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       thongBao(location.protocol === "file:" ? "Camera chỉ dùng được khi mở trang qua địa chỉ https (trên mạng)." : "Trình duyệt này không mở được camera.");
       return;
@@ -635,6 +637,7 @@
     dungLuong();
     $("camera").hidden = true;
     $("canh-bao-quet").hidden = true;
+    $("camera").classList.remove("co-canh-bao");
     veNutQuet();
   }
 
@@ -654,6 +657,20 @@
   document.addEventListener("focusout", function () {
     setTimeout(function () { if (!laOGo(document.activeElement)) document.body.classList.remove("dang-go"); }, 150);
   });
+  // iPhone: Safari vẫn phóng to khi chạm 2 lần nhanh lên CHỮ / NỀN (bỏ qua touch-action) → chặn lần chạm thứ 2.
+  // Phóng to bằng 2 ngón vẫn được; trong ô nhập để nguyên (chọn chữ); chạm nhanh lần 2 vào nút vẫn có tác dụng.
+  let lucChamCuoi = 0;
+  document.addEventListener("touchend", function (e) {
+    const bayGio = Date.now(), nhanh = bayGio - lucChamCuoi < 350;
+    lucChamCuoi = bayGio;
+    if (!nhanh || e.touches.length || e.changedTouches.length !== 1) return;
+    const el = e.target && e.target.closest ? e.target : null;
+    if (!el || el.closest("input, textarea, select, [contenteditable]")) return;
+    e.preventDefault();
+    const nut = el.closest("button, a, label, li[data-khoa]");
+    if (nut) nut.click();
+  }, { passive: false });
+
   // Thanh Nộp ở đáy hiện → nút Quét nhích lên trên thanh đó
   new MutationObserver(function () { document.body.classList.toggle("co-chan", !$("chan").hidden); })
     .observe($("chan"), { attributes: true, attributeFilter: ["hidden"] });
