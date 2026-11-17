@@ -160,6 +160,17 @@
     }
   }
 
+  // Kích thước của thùng (KT1×KT2×KT3 từ sheet TONG_HOP_SIZE_THUNG) để in cạnh tên thùng. Không có → ""
+  function kichThuocThung(ten) {
+    try {
+      if (typeof window === "undefined" || !window.KichThuoc || typeof window.KichThuoc.kichThuocThung !== "function") return "";
+      return window.KichThuoc.kichThuocThung(ten) || "";
+    } catch (e) {
+      console.error("[MauIn] Lỗi lấy kích thước thùng — chỉ in tên thùng:", e);
+      return "";
+    }
+  }
+
   // Mã QR của mã đơn (ảnh vector đen trắng, kích thước đặt trong CSS)
   function maQr(noiDung) {
     try {
@@ -233,10 +244,11 @@
       : "";
     // Mẫu tùy chỉnh: "Thùng: X" cùng hàng, bên TRÁI tổng tiền. Không có thùng → giữ nguyên như cũ
     const thung = tc && mau.trang.hienThung !== false ? thungCuaDon(don.items) : "";
+    const ktThung = thung ? kichThuocThung(thung) : ""; // in trong cùng khung: "Thùng: [N3 20×10×10]"
     html += `</tbody></table>
         ${ctx.canhBaoDeVo}
         ` + (thung
-      ? `<div class="mi-chan-tong"><span class="mi-thung">Thùng:<b>${esc(thung)}</b></span>${dongTong}</div>`
+      ? `<div class="mi-chan-tong"><span class="mi-thung">Thùng:<b>${esc(thung)}${ktThung ? " " + esc(ktThung) : ""}</b></span>${dongTong}</div>`
       : dongTong) +
       (tc && mau.trang.chanDon ? `<div class="mi-chan-don">${esc(mau.trang.chanDon)}</div>` : "") + `
       </div>`;
