@@ -1320,9 +1320,20 @@ btnTaoIn.addEventListener("click", function () {
     invoiceArea.innerHTML = `<div style="text-align:center;color:red;padding:20px;">Bảng 3 không có dữ liệu để tạo!</div>`;
     return;
   }
+  // ── SẮP XẾP TỜ ĐƠN (sap_xep_don/) — tắt công tắc / lỗi → giữ thứ tự cũ ──
+  var thuTuDon = Object.keys(donHangGrouped);
+  try {
+    if (window.SapXepDon && typeof window.SapXepDon.sapXep === "function") {
+      var thuTuMoi = window.SapXepDon.sapXep(donHangGrouped, thuTuDon.slice());
+      if (Array.isArray(thuTuMoi) && thuTuMoi.length === thuTuDon.length) thuTuDon = thuTuMoi;
+    }
+  } catch (loiSapXep) {
+    console.error("[SapXepDon] Lỗi — dùng thứ tự cũ:", loiSapXep);
+  }
+  // ── KẾT THÚC SẮP XẾP TỜ ĐƠN ──
   let htmlPreview = "",
     htmlPrint = "";
-  Object.keys(donHangGrouped).forEach((idDon) => {
+  thuTuDon.forEach((idDon) => {
     const don = donHangGrouped[idDon];
 
     var total = don.items.reduce(function (s, it) {
@@ -1423,7 +1434,7 @@ btnTaoIn.addEventListener("click", function () {
   var phienId =
     Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   var logBang3 = [];
-  Object.keys(donHangGrouped).forEach(function (idDon) {
+  thuTuDon.forEach(function (idDon) {
     var don = donHangGrouped[idDon];
     don.items.forEach(function (it) {
       logBang3.push({

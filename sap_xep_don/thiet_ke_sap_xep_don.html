@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sắp Xếp Tờ Đơn</title>
+<link rel="icon" type="image/png" href="../logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="thiet_ke_sap_xep_don.css" />
+</head>
+<body>
+<header class="thanh-tren">
+  <div><a href="../index.html">← Trang Vận Hành</a><h1>Sắp xếp tờ đơn lấy hàng</h1></div>
+  <span class="chip" id="chip">Đang tải bảng điều khiển…</span>
+  <div class="day-nut">
+    <button class="nut" id="nut-md" disabled>↺ Về mặc định</button>
+    <button class="nut nut-chinh" id="nut-luu-tren" disabled>Lưu &amp; áp dụng</button>
+  </div>
+</header>
+
+<div class="dang-tai" id="dang-tai">Đang đọc bảng điều khiển từ Google Sheet…</div>
+<div class="loi-tai" id="loi-tai" hidden></div>
+
+<main id="noi-dung" hidden>
+  <div id="canh-bao-doc"></div>
+  <!-- TÓM TẮT BẰNG LỜI -->
+  <section class="tom-tat" aria-live="polite">
+    <h2>📋 Với cài đặt này, tờ đơn sẽ được xếp như sau</h2>
+    <ol id="tom-tat"></ol>
+    <div class="phu">Thứ tự các MÓN bên trong 1 tờ đơn không đổi (vẫn xếp theo vị trí A → Z như hiện nay). Phiếu đóng gói tự đi theo thứ tự tờ đơn.</div>
+  </section>
+
+  <details class="giai">
+    <summary>❓ Chưa rõ các từ ngữ? Bấm để xem giải thích</summary>
+    <dl>
+      <dt>Vị trí kho</dt><dd>Chỗ để hàng trong kho, lấy từ cột "Vị Trí Kho" của MISA, vd <code>A-C1H2-01</code>, <code>SH20-C6H3-02</code>. Tờ đơn in ra có cột này.</dd>
+      <dt>Món</dt><dd>Mỗi dòng hàng trên tờ đơn. 1 đơn có thể có nhiều món.</dd>
+      <dt>Khu</dt><dd>Phần chữ trước dấu <code>-</code> đầu tiên của vị trí: <code>A-C1H2-01</code> thuộc khu <code>A</code>, <code>SH20-C6H3-02</code> thuộc khu <code>SH20</code>.</dd>
+      <dt>Đơn chưa có vị trí</dt><dd>Đơn mà KHÔNG món nào có vị trí kho (MISA để trống hoặc ghi "Chưa xếp vị trí").</dd>
+      <dt>Đơn bằng nhau</dt><dd>Các đơn có cùng giá trị để xếp (vd cùng vị trí) luôn đứng LIỀN NHAU thành 1 cụm; trong cụm giữ thứ tự như lúc dán vào Bảng 3.</dd>
+      <dt>Tầng (phần nâng cao)</dt><dd>Quy tắc phụ khi 2 đơn "bằng nhau" ở quy tắc chính. Vd quy tắc chính là số món, 2 đơn cùng 3 món → xét tiếp tầng 2 là vị trí.</dd>
+      <dt>So số tự nhiên / so từng chữ</dt><dd>Số tự nhiên: <code>A3-9</code> đứng TRƯỚC <code>A3-13</code> (9 nhỏ hơn 13 — như đếm số). Từng chữ: <code>A3-13</code> đứng trước <code>A3-9</code> (vì ký tự "1" đứng trước "9" — như tra từ điển). Vị trí kho nên dùng số tự nhiên.</dd>
+    </dl>
+  </details>
+
+  <!-- BƯỚC 1 -->
+  <section class="muc">
+    <h2><span class="so">1</span>Chọn cách sắp tờ đơn</h2>
+    <p class="mo-ta">Chọn 1 cách phù hợp với cách kho đang đi lấy hàng. Không chắc thì chọn cách có nhãn <b>Khuyên dùng</b>.</p>
+    <div class="the-ds" id="cach-sap"></div>
+  </section>
+
+  <!-- BƯỚC 2 -->
+  <section class="muc">
+    <h2><span class="so">2</span>Đơn chưa có vị trí kho để ở đâu?</h2>
+    <p class="mo-ta">Đơn mà không món nào có vị trí thì không biết đi lấy ở đâu — chọn để chúng ở cuối hay đầu xấp giấy.</p>
+    <div class="the-ds hai" id="kvt"></div>
+  </section>
+
+  <!-- BƯỚC 3 (chỉ hiện khi cần) -->
+  <section class="muc" id="muc-ut">
+    <h2><span class="so">3</span>Danh sách khu ưu tiên</h2>
+    <p class="mo-ta" id="ut-mo-ta"></p>
+    <div class="nghia"><b>Cách ghi:</b> mỗi dòng 1 phần ĐẦU của vị trí. Dòng 1 được lấy trước, rồi dòng 2…<br>
+      Ví dụ muốn lấy khu <code>SH20</code> trước, rồi khu <code>FT</code>, rồi khu <code>A</code>: ghi 3 dòng <code>SH20</code> · <code>FT</code> · <code>A-</code>.<br>
+      Vị trí <b>không khớp dòng nào</b> → xếp <b>SAU tất cả các khu trong danh sách</b>, giữa chúng với nhau theo A → Z (số tự nhiên: 9 trước 13). Đơn chưa có vị trí vẫn theo bước 2.<br>
+      Cẩn thận chữ quá ngắn: <code>SH</code> sẽ khớp cả <code>SH17-…</code> lẫn <code>SH20-…</code>; <code>A</code> khớp cả <code>AB13-…</code> — muốn chỉ khu A thì ghi <code>A-</code>.<br>
+      Dòng chi tiết (vd <code>FT-C1</code>) phải nằm TRÊN dòng chung (<code>FT</code>), nếu không sẽ không bao giờ được dùng — trang sẽ cảnh báo vàng.<br>
+      Danh sách này chỉ thêm / sửa / xóa bằng tay — nút ↺ Về mặc định KHÔNG đụng tới.</div>
+    <div class="ds" id="ds-ut"></div>
+    <div class="them"><input type="text" id="them-ut" placeholder="Phần đầu vị trí, vd SH20" /><button class="nut" data-them="ut">+ Thêm dòng</button></div>
+    <div id="bao-ut"></div>
+  </section>
+
+  <!-- NÂNG CAO -->
+  <section class="muc">
+    <details class="nang-cao" id="nang-cao">
+      <summary>Cài đặt nâng cao <small>— chỉ mở khi đã hiểu rõ; người mới không cần chỉnh</small></summary>
+      <div class="nhom-con">
+        <h3>Quy tắc sắp chi tiết (3 tầng)</h3>
+        <p class="mo-ta">Chọn ở bước 1 là trang tự điền phần này. Sửa ở đây → bước 1 chuyển sang "Tự chỉnh".</p>
+        <div id="cac-tang"></div>
+      </div>
+      <div class="nhom-con">
+        <h3>Ô vị trí ghi nhiều chỗ</h3>
+        <div class="the-ds hai" id="nhieu"></div>
+      </div>
+      <div class="nhom-con">
+        <h3>Chữ được coi như KHÔNG có vị trí</h3>
+        <p class="mo-ta">Ô vị trí <b>chứa</b> chữ dưới đây (không phân biệt hoa thường) bị coi như chưa có vị trí. Vd kho ghi tạm "CHƯA XẾP VỊ TRÍ KỆ 2".</p>
+        <div class="ds" id="ds-kv"></div>
+        <div class="them"><input type="text" id="them-kv" placeholder="vd KHO TẠM" /><button class="nut" data-them="kv">+ Thêm dòng</button></div>
+      </div>
+      <div class="nhom-con">
+        <label class="hop-chon"><input type="checkbox" id="dung-md" /><span>Tạm dùng bộ mặc định<br><small style="font-weight:400;color:var(--chu-phu)">Bỏ qua các cài đặt trên nhưng KHÔNG xóa chúng — bỏ tích là dùng lại. Dùng khi nghi cài đặt sai mà chưa kịp sửa.</small></span></label>
+      </div>
+    </details>
+  </section>
+
+  <!-- LƯU -->
+  <section class="muc" id="khu-luu">
+    <h2><span class="so">✓</span>Lưu &amp; áp dụng</h2>
+    <div id="doi"></div>
+    <div class="luu">
+      <div><label for="nguoi">Người lưu</label><input type="text" id="nguoi" maxlength="50" /></div>
+      <div><label for="mk">Mật khẩu admin</label><input type="password" id="mk" placeholder="Như trang Thiết kế mẫu in" autocomplete="current-password" /></div>
+      <button class="nut nut-chinh" id="nut-luu" disabled>Lưu &amp; áp dụng</button>
+    </div>
+    <div id="bao-luu"></div>
+    <p class="ghi">Sau khi lưu: các máy đang mở trang Vận Hành bấm <b>F5</b> để nhận cách sắp mới.</p>
+  </section>
+</main>
+
+<script src="thiet_ke_sap_xep_don.js"></script>
+</body>
+</html>
