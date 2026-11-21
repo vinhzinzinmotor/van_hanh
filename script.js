@@ -1080,6 +1080,7 @@ btnXuLy.addEventListener("click", function () {
     const inf = rows[i].cells[3].innerText.trim();
     if (!mvd && !mdh && !inf) continue;
 
+    var viTriDauKq = danhSachKq.length; // [PhanTachShopee] vị trí món đầu của dòng này
     const blocks = splitProducts(inf);
     blocks.forEach((b) => {
       if (!b) return;
@@ -1119,6 +1120,22 @@ btnXuLy.addEventListener("click", function () {
         price: finalPrice,
       });
     });
+    // [PhanTachShopee] Công tắc BAT_FILE_MOI ☑ → thay các món của dòng này bằng kết quả file phan_tach_shopee.js; ☐ / lỗi → giữ kết quả cũ
+    try {
+      if (window.PhanTachShopee && typeof window.PhanTachShopee.chonKetQua === "function") {
+        var monThay = window.PhanTachShopee.chonKetQua(inf, danhSachKq.slice(viTriDauKq), mdh);
+        if (Array.isArray(monThay) && monThay.length > 0) {
+          var kqThay = monThay.map(function (m) { return { vandon: mvd, donhang: mdh, sku: m.sku, qty: m.qty, price: m.price, warn: m.warn }; });
+          var logThay = monThay.map(function (m) { return { orderId: mdh, vandon: mvd, sku: m.sku, qty: m.qty, price: m.price }; });
+          danhSachKq.length = viTriDauKq;
+          mangDuLieuLog.length = viTriDauKq;
+          Array.prototype.push.apply(danhSachKq, kqThay);
+          Array.prototype.push.apply(mangDuLieuLog, logThay);
+        }
+      }
+    } catch (loiPhanTach) {
+      console.error("[PhanTachShopee] Lỗi — dùng kết quả cũ:", loiPhanTach);
+    }
   }
 
   thanBangKq.innerHTML = "";
