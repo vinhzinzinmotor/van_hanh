@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mẫu Phiếu Gộp</title>
+<!-- TRANG "🎨 MẪU PHIẾU GỘP" (24/11 — bước 4, theo hình mẫu chủ dự án duyệt). Chỉnh cài đặt in phiếu gộp RIÊNG cho giấy nhiệt 99×154
+     và A4; đọc tab PHIEU_GOP (khóa API, chỉ đọc); lưu qua Apps Script "Phieu Gop ZZM" (mật khẩu admin). Khung xem trước dùng
+     ĐÚNG phần dựng của phiếu gộp (dung_phieu.js). KHÔNG có công tắc BAT_PHIEU_GOP, KHÔNG sửa được cột MẶC ĐỊNH. -->
+<style>
+  :root { --nen:#f1f3f4; --the:#fff; --chu:#202124; --mo:#5f6368; --vien:#dadce0; --xanh:#1a73e8; --xanh-la:#1e8e3e; --do:#d93025; --vang:#fef7e0; --dam:#34495e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--nen); color:var(--chu); font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  header { background:var(--dam); color:#fff; padding:10px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:17px; }
+  header a { color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,.5); border-radius:6px; padding:4px 10px; font-size:13px; }
+  header .ghi { font-size:12px; opacity:.85; }
+  #bao { padding:8px 16px; font-size:13px; display:none; }
+  #bao.vang { display:block; background:var(--vang); border-bottom:1px solid #f9d97a; }
+  #bao.do { display:block; background:#fce8e6; border-bottom:1px solid #f6aea9; color:#a50e0e; }
+  main { display:grid; grid-template-columns:minmax(320px,460px) minmax(0,1fr); gap:16px; padding:16px; max-width:1200px; margin:0 auto; }
+  main > section { min-width:0; }
+  .the { background:var(--the); border:1px solid var(--vien); border-radius:10px; padding:14px; margin-bottom:14px; }
+  .the h2 { margin:0 0 4px; font-size:15px; }
+  .the .goi-y { color:var(--mo); font-size:12.5px; margin:0 0 10px; }
+  .ten-giay { display:inline-block; margin-left:6px; font-size:11.5px; font-weight:600; color:var(--dam); background:#eef2f6; border-radius:10px; padding:1px 8px; vertical-align:middle; }
+  .chon-giay { position:sticky; top:62px; z-index:4; background:var(--dam); color:#fff; border-radius:10px; padding:10px 12px; margin-bottom:14px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .chon-giay b { font-size:13px; }
+  .chon-giay button[data-kho], .tab-xem button { border:1px solid rgba(255,255,255,.6); background:transparent; color:#fff; border-radius:16px; padding:5px 12px; cursor:pointer; font:inherit; font-size:13px; }
+  .chon-giay button[data-kho].dang { background:#fff; color:var(--dam); font-weight:700; }
+  .chon-giay .nut { margin-left:auto; font-size:12px; padding:5px 10px; }
+  table.chu { width:100%; border-collapse:collapse; font-size:13px; }
+  table.chu th { text-align:left; color:var(--mo); font-weight:600; font-size:12px; padding:4px; border-bottom:1px solid var(--vien); }
+  table.chu td { padding:5px 4px; border-bottom:1px solid #f1f3f4; vertical-align:middle; }
+  table.chu td:first-child { font-weight:600; white-space:nowrap; }
+  table.chu select { width:100%; min-width:0; }
+  .so { display:inline-flex; align-items:center; border:1px solid var(--vien); border-radius:6px; overflow:hidden; background:#fff; }
+  .so button { border:none; background:#f8f9fa; width:26px; height:28px; cursor:pointer; font-size:15px; }
+  .so input { width:44px; height:28px; border:none; text-align:center; font:inherit; }
+  select, input[type=text], input[type=password] { height:30px; border:1px solid var(--vien); border-radius:6px; padding:0 8px; font:inherit; background:#fff; max-width:100%; }
+  label.hang { display:flex; align-items:center; gap:8px; padding:5px 0; cursor:pointer; }
+  label.hang input[type=checkbox] { width:17px; height:17px; }
+  .chon3 { display:flex; flex-wrap:wrap; gap:6px; }
+  .chon3 label { border:1px solid var(--vien); border-radius:16px; padding:4px 10px; cursor:pointer; font-size:13px; }
+  .chon3 input { position:absolute; opacity:0; pointer-events:none; }
+  .chon3 label.dang { background:var(--chu); border-color:var(--chu); color:#fff; }
+  .dong2 { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:6px 0; }
+  .dong2 > span:first-child { min-width:150px; font-weight:600; }
+  .nut { border:1px solid #b8bcc3; background:#fff; border-radius:7px; padding:7px 14px; font-weight:600; font-size:13px; cursor:pointer; font-family:inherit; color:var(--chu); }
+  .nut.xanh { background:var(--xanh-la); color:#fff; border-color:var(--xanh-la); }
+  .nut:disabled { opacity:.5; cursor:not-allowed; }
+  .doi { margin:8px 0; padding:8px 10px; border-radius:8px; background:#f8f9fa; font-size:12.5px; }
+  .doi ul { margin:4px 0 0; padding-left:18px; }
+  #ket-qua { font-size:13px; margin-top:6px; }
+  #ket-qua.do { color:var(--do); } #ket-qua.xanh { color:var(--xanh-la); font-weight:600; }
+  .xem { position:sticky; top:62px; }
+  .tab-xem { display:flex; gap:6px; margin-bottom:10px; }
+  .tab-xem button { border-color:var(--vien); color:var(--chu); }
+  .tab-xem button.dang { background:var(--chu); color:#fff; border-color:var(--chu); }
+  .giay-khung { overflow:hidden; background:#e8eaed; border-radius:8px; padding:12px; }
+  .giay-khung .pg-to { box-shadow:0 1px 4px rgba(0,0,0,.25); transform-origin:top left; }
+  .chu-thich { color:var(--mo); font-size:12px; margin-top:8px; }
+  /* ô "Hàng Dễ Vỡ" — CHÉP từ style.css (trang Vận Hành) để xem trước giống tờ in */
+  .canh-bao-de-vo { margin-top:10px; padding:6px 12px; background:#fff4e0; border:2px solid #e67e22; border-radius:6px; font-weight:800; font-size:18px; color:#c0392b; text-align:center; }
+  @media (max-width: 860px) { main { grid-template-columns:minmax(0,1fr); padding:12px 16px; } .xem { position:static; } .chon-giay { top:0; } .chon-giay .nut { margin-left:0; }
+    .dong2 > span:first-child { min-width:0; width:100%; } .so input { width:36px; } .so button { width:24px; } table.chu td, table.chu th { padding:4px 2px; } }
+</style>
+</head>
+<body>
+<header>
+  <a href="../index.html">← Trang Vận Hành</a>
+  <h1>🎨 MẪU PHIẾU GỘP</h1>
+  <span class="ghi">Chỉnh cách in phiếu gộp (giấy nhiệt 99×154 và A4) — lưu vào Google Sheet tab PHIEU_GOP, mọi máy dùng chung</span>
+</header>
+<div id="bao"></div>
+<main>
+  <section>
+    <div class="chon-giay"><b>Đang chỉnh:</b><button data-kho="nhiet" class="dang">🧾 Giấy nhiệt 99×154</button><button data-kho="a4">📄 A4</button>
+      <button class="nut" id="chep">⧉ Chép sang A4</button></div>
+    <div class="the">
+      <h2>① Chữ từng dòng của mỗi mã hàng<span class="ten-giay"></span></h2>
+      <p class="goi-y">Cỡ chữ (điểm ảnh, 6–30) · In đậm · Phông chữ. Chỉ các phông có đủ dấu tiếng Việt.</p>
+      <table class="chu"><thead><tr><th>Dòng</th><th>Cỡ</th><th>Đậm</th><th>Phông</th></tr></thead><tbody id="bang-chu"></tbody></table>
+    </div>
+    <div class="the">
+      <h2>② Danh sách hàng<span class="ten-giay"></span></h2>
+      <label class="hang"><input type="checkbox" id="khoanhTron"> Khoanh tròn số lượng lớn hơn 1</label>
+      <label class="hang"><input type="checkbox" id="duongKe"> Đường kẻ ngăn giữa các mã</label>
+      <label class="hang"><input type="checkbox" id="hienKtgh"> Hiện KTGH (tên thùng / kích thước) cuối dòng mã</label>
+    </div>
+    <div class="the">
+      <h2>③ Chân tờ<span class="ten-giay"></span></h2>
+      <div class="dong2"><span>Chữ nhãn tổng tiền</span><input type="text" id="nhanTong" maxlength="30"></div>
+      <div class="dong2"><span>Dòng "Thùng" của đơn</span>
+        <div class="chon3" id="dongThung">
+          <label><input type="radio" name="dt" value="ten_kt">Tên + kích thước</label>
+          <label><input type="radio" name="dt" value="ten">Chỉ tên</label>
+          <label><input type="radio" name="dt" value="an">Ẩn</label>
+        </div>
+      </div>
+    </div>
+    <div class="the">
+      <h2>④ Đầu / chân tờ<span class="ten-giay"></span></h2>
+      <div class="dong2"><span>Tỉ lệ đầu / chân tờ</span><span class="so"><button data-buoc="tl:-5">−</button><input id="tl" inputmode="numeric"><button data-buoc="tl:5">+</button></span> %</div>
+    </div>
+    <div class="the">
+      <h2>⑤ Dùng chung cho cả 2 loại giấy</h2>
+      <div class="dong2"><span>Gợi ý in A4 khi danh sách cần từ</span><span class="so"><button data-buoc="nguongA4:-1">−</button><input id="nguongA4" inputmode="numeric"><button data-buoc="nguongA4:1">+</button></span> tờ 99×154</div>
+      <p class="chu-thich">Công tắc bật / tắt phiếu gộp và các cột MẶC ĐỊNH chỉ chỉnh trên Google Sheet (chủ dự án).</p>
+    </div>
+    <div class="the">
+      <h2>💾 Lưu</h2>
+      <div class="doi" id="doi">Chưa thay đổi gì.</div>
+      <div class="dong2"><span>Người lưu</span><input type="text" id="nguoi" placeholder="Tên của bạn" maxlength="50"></div>
+      <div class="dong2"><span>Mật khẩu admin</span><input type="password" id="mk" placeholder="Mật khẩu" autocomplete="current-password"></div>
+      <div class="dong2"><button class="nut" id="ve-md">↺ Về mặc định</button><button class="nut xanh" id="luu" disabled>💾 Lưu &amp; áp dụng</button></div>
+      <div id="ket-qua"></div>
+      <p class="chu-thich">"Về mặc định" chỉ điền lại các ô của loại giấy đang chỉnh theo cột MẶC ĐỊNH trên Google Sheet — phải bấm Lưu mới áp dụng. Lưu xong: các máy bấm F5 trang Vận Hành.</p>
+    </div>
+  </section>
+  <section class="xem">
+    <div class="the">
+      <h2>👁 Xem trước</h2>
+      <div class="tab-xem"><button data-kho="nhiet" class="dang">🧾 Giấy nhiệt 99×154</button><button data-kho="a4">📄 A4 (đơn dài)</button></div>
+      <div class="giay-khung" id="giay-khung"></div>
+      <p class="chu-thich" id="ghi-xem"></p>
+    </div>
+  </section>
+</main>
+<div id="mau-don" hidden></div>
+<script src="dung_phieu.js"></script>
+<script src="thiet_ke_phieu_gop.js"></script>
+</body>
+</html>

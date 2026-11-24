@@ -18,12 +18,37 @@
   function luu(bat) { try { localStorage.setItem(KHOA_LUU, JSON.stringify({ bat: bat === true, luc: Date.now() })); } catch (e) { /* bỏ qua */ } }
   function docLuu() { try { const b = JSON.parse(localStorage.getItem(KHOA_LUU) || "null"); return b && typeof b.bat === "boolean" ? b : null; } catch (e) { return null; } }
 
+  // 24/11 tối (chủ dự án): chữ trong ô 📦 TO HƠN cho người thị lực kém — CHỈ giao diện. KHÔNG sửa nhung_van_hanh.js (file bảo vệ):
+  // sau khi ô nạp xong, chép khối CSS của ô (#ssp-css) thành 1 khối MỚI chỉ đổi cỡ chữ px × TANG_CHU, đặt SAU khối gốc (đè cỡ chữ).
+  // Lỗi / không thấy khối gốc → bỏ qua (ô vẫn chạy y như cũ).
+  const TANG_CHU = 1.15;
+  function phongChuPdf() {
+    try {
+      const goc = document.getElementById("ssp-css");
+      if (!goc || document.getElementById("ssp-css-chu-to")) return;
+      const to = document.createElement("style");
+      to.id = "ssp-css-chu-to";
+      // CHỈ màn hình máy tính (> 600px — điện thoại giữ nguyên, không tràn); CHỈ các quy tắc ngoài cùng; BỎ QUA các dòng đã chốt GỌN 1 dòng
+      // (dải 2 nút in ①②, "PDF vừa tạo", dòng đầu ô / nút 📎, khung kết luận) để bố cục gọn không vỡ.
+      const BO_QUA = /ssp-day|ssp-nut-in|ssp-in\b|ssp-vua|ssp-tt|ssp-nut-file|ssp-kl|ssp-tom|ssp-td-ngan/;
+      const ra = []; let sau = 0;
+      goc.textContent.split("\n").forEach(function (dong) {
+        const mo = (dong.match(/{/g) || []).length, dong2 = (dong.match(/}/g) || []).length;
+        if (sau === 0 && /font-size/.test(dong) && !/^\s*@/.test(dong) && mo === dong2 && !BO_QUA.test(dong.split("{")[0]))
+          ra.push(dong.replace(/font-size:\s*([\d.]+)px/g, function (_, n) { return "font-size:" + (Math.round(n * TANG_CHU * 10) / 10) + "px"; }));
+        sau += mo - dong2;
+      });
+      to.textContent = "@media (min-width:601px){\n" + ra.join("\n") + "\n}";
+      goc.parentNode.insertBefore(to, goc.nextSibling);
+    } catch (e) { console.warn("[CauDaoPdf] Không phóng chữ được (bỏ qua):", e); }
+  }
   function napPdf(nguon) {
     if (daNap || document.getElementById("ssp-khung")) return;
     daNap = true;
     const s = document.createElement("script");
     s.src = thuMuc + "nhung_van_hanh.js";
     s.onerror = function () { console.warn("[CauDaoPdf] Không nạp được nhung_van_hanh.js"); };
+    s.onload = phongChuPdf; // chữ to hơn (chỉ giao diện)
     document.body.appendChild(s);
     console.info("[CauDaoPdf] Công tắc PDF trang vận hành: BẬT (" + nguon + ") → đã nạp ô phiếu đóng gói.");
   }

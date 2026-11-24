@@ -27,6 +27,13 @@
   const DPI = 400;                                 // độ nét ảnh tờ đơn — 23/11 tối chủ dự án hạ 600 → 400 dpi để thử tốc độ (vẫn gấp đôi máy in nhiệt 203 dpi)
   const CHAT_LUONG_JPEG = 0.92;                    // ảnh tờ đơn JPEG (chữ đen trên nền trắng ở 600 dpi — không thấy vết nén khi in nhiệt)
   const RONG_TO_DON_MM = GIAY_W_MM - 6;            // bề ngang tờ đơn sau khi thu (lề trái/phải 3 mm)
+  // 24/11 (bước 3): 2 KHỔ — nhiet = giấy in nhiệt 99×154 (nhãn XOAY ngang ở nửa trên) · a4 = giấy A4 máy in giấy cho ĐƠN DÀI
+  //   (nhãn KHÔNG xoay, gần đúng cỡ gốc ở trên; danh sách bên dưới; cùng cài đặt chữ). le = chừa mép giấy, ngang = lề trái/phải nội dung.
+  const KHO = {
+    nhiet: { ten: GIAY_W_MM + "×" + GIAY_H_MM, w: GIAY_W_MM, h: GIAY_H_MM, le: LE_MM, ngang: 3, xoay: true },
+    // 24/11 (chủ dự án xem mẫu): A4 cũng LẬT NGANG nhãn (tối đa 100% = đúng cỡ gốc, canh giữa) + danh sách CHIA 2 CỘT
+    a4: { ten: "A4", w: 210, h: 297, le: 8, ngang: 10, xoay: true, tlMax: 1, cot: 2 },
+  };
 
   // ── 23/11 tối (máy nhà, chủ dự án duyệt hình mẫu bản 4): phần hàng = DANH SÁCH thay BẢNG.
   //    Mỗi mã 2 dòng căn trái: cột SL riêng | dòng 1: Mã hàng · (cách 5 mm) · Vị trí · KTGH sát phải | dòng 2: Tên.
@@ -44,8 +51,71 @@
     nhanTong: "Tổng tiền:",  // chữ nhãn tổng tiền (thay "Total Price:" của mẫu — chỉ trên phiếu gộp)
     dongThung: "ten_kt",     // ten_kt = "Thùng: [N3 20×10×10]" · ten = "Thùng: N3" · an = ẩn
   };
+  // ── 24/11 (bước 4): CÀI ĐẶT RIÊNG từng loại giấy, đọc từ tab PHIEU_GOP (cau_dao_phieu_gop.js đọc sẵn → PHIEU_GOP_CAU_HINH.bang).
+  //    LƯỚI AN TOÀN 3 TẦNG cho TỪNG Ô: ô cài đặt hợp lệ → ô MẶC ĐỊNH trên Sheet hợp lệ → số trong code (CAU_HINH_MAC_DINH).
+  //    Danh sách hợp lệ PHẢI giống apps_script/phieu_gop.gs.
+  const PHONG_HOP_LE = ["Arial", "Segoe UI", "Tahoma", "Verdana", "Times New Roman", "Courier New"];
+  const DONG_THUNG_HOP_LE = ["ten_kt", "ten", "an"];
+  const DONG_CHU = [["MA_HANG", "ma"], ["SO_LUONG", "sl"], ["VI_TRI", "viTri"], ["KTGH", "ktgh"], ["TEN_SP", "ten"]];
+  const KHOI_CHU = { nhiet: "CHU_GIAY_NHIET", a4: "CHU_A4" };
+  const MD_CODE = Object.assign(JSON.parse(JSON.stringify(CAU_HINH_MAC_DINH)), { tl: 80 });
+  const ktCo = function (v) { const n = Number(String(v == null ? "" : v).replace(",", ".")); return String(v).trim() !== "" && isFinite(n) && n >= 6 && n <= 30 ? Math.round(n * 10) / 10 : null; };
+  const ktTl = function (v) { const n = Number(String(v == null ? "" : v).replace(",", ".")); return String(v).trim() !== "" && isFinite(n) && n >= 50 && n <= 100 && Math.floor(n) === n ? n : null; };
+  const ktNguong = function (v) { const n = Number(String(v == null ? "" : v).replace(",", ".")); return String(v).trim() !== "" && isFinite(n) && n >= 2 && n <= 20 && Math.floor(n) === n ? n : null; };
+  const ktO = function (v) { if (v === true || v === false) return v; const t = String(v == null ? "" : v).trim().toUpperCase(); return t === "TRUE" ? true : t === "FALSE" ? false : null; };
+  const ktChu = function (v) { const t = String(v == null ? "" : v).trim(); return t && t.length <= 30 && !/^[=+\-@]/.test(t) ? t : null; };
+  const ktTrong = function (ds) { return function (v) { const t = String(v == null ? "" : v).trim(); return ds.indexOf(t) >= 0 ? t : null; }; };
+  // values = mảng dòng của tab PHIEU_GOP (A:H). → { nhiet, a4, nguongA4, md: { nhiet, a4, nguongA4 }, capNhat, canhBao: [...] }
+  function phanTichBang(values) {
+    let bang = Array.isArray(values) ? values : [];
+    const ten = function (d) { return String(d && d[0] != null ? d[0] : "").trim().toUpperCase(); };
+    // Bố cục MỚI = dòng tiêu đề "CÀI ĐẶT" có chữ "A4" ở cột C. Bố cục CŨ (23/11): cột C là GHI CHÚ → CHỈ đọc cột B.
+    const moi = bang.some(function (d) { return ten(d) === "CÀI ĐẶT" && String(d && d[2] != null ? d[2] : "").trim().toUpperCase() === "A4"; });
+    if (!moi) bang = bang.map(function (d) { return Array.isArray(d) ? [d[0], d[1]] : d; });
+    const tim = function (nhan) { return bang.find(function (d) { return ten(d) === nhan; }) || null; };
+    const canhBao = [];
+    // chọn giá trị: ô → ô mặc định → code; ghi cảnh báo khi ô có chữ mà sai
+    const chon = function (kiem, o, oMd, code, moTa) {
+      const a = kiem(o); if (a !== null) return { v: a, md: kiem(oMd) !== null ? kiem(oMd) : code };
+      if (o !== undefined && o !== null && String(o).trim() !== "") canhBao.push(moTa + " sai (\"" + String(o).slice(0, 30) + "\") → dùng mặc định");
+      const b = kiem(oMd); return { v: b !== null ? b : code, md: b !== null ? b : code };
+    };
+    const kq = { nhiet: {}, a4: {}, md: { nhiet: {}, a4: {} }, canhBao: canhBao };
+    const DON = [["TL_PHIEU_GOP", "tl", ktTl], ["NHAN_TONG_TIEN", "nhanTong", ktChu], ["DONG_THUNG", "dongThung", ktTrong(DONG_THUNG_HOP_LE)],
+      ["KHOANH_TRON_SL", "khoanhTron", ktO], ["DUONG_KE", "duongKe", ktO], ["HIEN_KTGH", "hienKtgh", ktO]];
+    ["nhiet", "a4"].forEach(function (g, gi) {
+      DON.forEach(function (x) {
+        const d = tim(x[0]) || [];
+        // TL_PHIEU_GOP bố cục cũ (chỉ cột B) → A4 theo giấy nhiệt
+        const o = x[1] === "tl" && gi === 1 && (d[2] === undefined || d[2] === "") ? d[1] : d[1 + gi];
+        const c = chon(x[2], o, d[3 + gi], MD_CODE[x[1]], (gi ? "A4" : "Giấy nhiệt") + " · " + x[0]);
+        kq[g][x[1]] = c.v; kq.md[g][x[1]] = c.md;
+      });
+      const dau = bang.findIndex(function (d) { return ten(d) === KHOI_CHU[g]; });
+      DONG_CHU.forEach(function (x) {
+        let d = [];
+        if (dau >= 0) for (let i = dau + 1; i < Math.min(bang.length, dau + 12); i++) { if (ten(bang[i]) === x[0]) { d = bang[i]; break; } if (/^CHU_/.test(ten(bang[i]))) break; }
+        const code = MD_CODE[x[1]], moTa = (gi ? "A4" : "Giấy nhiệt") + " · " + x[0];
+        const co = chon(ktCo, d[1], d[4], code.co, moTa + " cỡ chữ"), dam = chon(ktO, d[2], d[5], code.dam, moTa + " đậm"), ph = chon(ktTrong(PHONG_HOP_LE), d[3], d[6], code.phong, moTa + " phông");
+        kq[g][x[1]] = { co: co.v, dam: dam.v, phong: ph.v };
+        kq.md[g][x[1]] = { co: co.md, dam: dam.md, phong: ph.md };
+      });
+    });
+    const dn = tim("NGUONG_A4") || [];
+    const n = chon(ktNguong, dn[1], dn[3], 2, "NGUONG_A4"); kq.nguongA4 = n.v; kq.md.nguongA4 = n.md;
+    const cn = tim("CAP_NHAT"); kq.capNhat = cn && cn[1] != null ? String(cn[1]) : "";
+    return kq;
+  }
+  // Cài đặt đang dùng (đọc 1 lần khi nạp file): bảng chưa nâng cấp / không đọc được → mọi ô theo code
+  const CAI_DAT = (function () {
+    try { return phanTichBang((window.PHIEU_GOP_CAU_HINH && window.PHIEU_GOP_CAU_HINH.bang) || []); } catch (er) { console.warn("[PhieuGop] Lỗi đọc cài đặt — dùng mặc định:", er); return phanTichBang([]); }
+  })();
+  if (CAI_DAT.canhBao.length) console.warn("[PhieuGop] Bảng PHIEU_GOP có ô sai (đã dùng mặc định):", CAI_DAT.canhBao);
+  let K_HIEN = CAI_DAT.nhiet; // cài đặt của loại giấy ĐANG dựng (đặt ở đầu dung / demTo / xemTruoc)
   // Mã vận đơn hợp lệ (đọc từ mã vạch / QR trên nhãn): Shopee SPXVN…, TikTok / GHN… VN…
-  const MAU_MVD = /^(SPXVN\d{8,}[A-Z]?|VN[A-Z]{2,4}\d{8,}[A-Z]?)$/;
+  // 24/11 chiều: thêm MVĐ TOÀN SỐ 10–16 chữ số (TikTok có đơn vị vận chuyển dùng mã 12 số, vd 862784076606 — mã vạch = QR).
+  //   Mã đơn TikTok 18 số nằm ngoài khoảng này; mã EAN13 cố định của phiếu Shopee không phải Code128 / QR nên không bị lấy.
+  const MAU_MVD = /^(SPXVN\d{8,}[A-Z]?|VN[A-Z]{2,4}\d{8,}[A-Z]?|\d{10,16})$/;
   const URL_MA_VACH = (function () { // thư viện đọc mã (ZXing nhúng sẵn) — cùng thư mục với file này
     const s = document.currentScript && document.currentScript.src;
     return s ? s.replace(/[^/]*$/, "") + "thu_vien_ma_vach.js" : "phieu_gop/thu_vien_ma_vach.js";
@@ -143,20 +213,21 @@
       return ds.length ? ds.join(",") + "{" + khai + "}\n" : "";
     });
   }
-  function cssTo(tl, nhanCaoPt) {
-    return "#pg-dung{position:fixed;left:-30000px;top:0;width:" + GIAY_W_MM + "mm;background:#fff;color:#000;font-size:11px;" +
+  function cssTo(tl, nhanCaoPt, kho) {
+    kho = kho || KHO.nhiet;
+    return "#pg-dung{position:fixed;left:-30000px;top:0;width:" + kho.w + "mm;background:#fff;color:#000;font-size:11px;" +
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}\n" +
       phamViCss(CSS_IN_GOC, "#pg-dung") +
       "#pg-dung .btn-copy-don{display:none!important}\n" +
-      "#pg-dung .pg-to{width:" + GIAY_W_MM + "mm;height:" + GIAY_H_MM + "mm;position:relative;overflow:hidden;box-sizing:border-box;background:#fff}\n" +
+      "#pg-dung .pg-to{width:" + kho.w + "mm;height:" + kho.h + "mm;position:relative;overflow:hidden;box-sizing:border-box;background:#fff}\n" +
       "#pg-dung .pg-cho-nhan{height:" + nhanCaoPt.toFixed(2) + "pt;border-bottom:1px dashed #000;box-sizing:border-box}\n" +
-      "#pg-dung .pg-vung{position:absolute;left:0;right:0;padding:0 3mm;box-sizing:border-box;overflow:hidden}\n" +
-      "#pg-dung .pg-vung .invoice-box{transform:scale(" + tl + ");transform-origin:0 0;width:" + (RONG_TO_DON_MM / tl).toFixed(2) + "mm!important;" +
+      "#pg-dung .pg-vung{position:absolute;left:0;right:0;padding:0 " + kho.ngang + "mm;box-sizing:border-box;overflow:hidden}\n" +
+      "#pg-dung .pg-vung .invoice-box{transform:scale(" + tl + ");transform-origin:0 0;width:" + ((kho.w - 2 * kho.ngang) / tl).toFixed(2) + "mm!important;" +
       "padding:2mm 0 0!important;margin:0!important;border:none!important;box-shadow:none!important;box-sizing:border-box}\n" +
       "#pg-dung .pg-dau-to{display:flex;justify-content:space-between;align-items:center;gap:4px;font-weight:700;font-size:15px;border:2px solid #000;" +
       "padding:1px 6px;margin-bottom:4px;white-space:nowrap}\n" +
       "#pg-dung .pg-dau-to span:first-child{overflow:hidden}\n#pg-dung .pg-dau-to .pg-so-to{font-size:19px}\n" +
-      "#pg-dung .pg-chan{position:absolute;left:3mm;right:3mm;bottom:" + LE_MM + "mm;display:flex;gap:2mm;align-items:flex-end;border-top:1px solid #000;" +
+      "#pg-dung .pg-chan{position:absolute;left:" + kho.ngang + "mm;right:" + kho.ngang + "mm;bottom:" + kho.le + "mm;display:flex;gap:2mm;align-items:flex-end;border-top:1px solid #000;" +
       "padding-top:1mm;box-sizing:border-box}\n" +
       "#pg-dung .pg-trai{flex:1;min-width:0;position:relative}\n" +
       "#pg-dung .pg-trai-in{transform:scale(" + tl + ");transform-origin:0 0;width:" + (100 / tl).toFixed(3) + "%}\n" +
@@ -165,7 +236,7 @@
       "#pg-dung .pg-thung{font-weight:700;font-size:13px;margin:2px 0}\n" +
       "#pg-dung .pg-con-tiep{font-weight:700;font-size:12px}\n#pg-dung .pg-het-don{font-weight:700;font-size:11px;margin-top:1mm}\n" +
       "#pg-dung .pg-qr{width:" + QR_MM + "mm;height:" + QR_MM + "mm;flex:none}\n#pg-dung .pg-qr svg{width:100%;height:100%;display:block}\n" +
-      cssDanhSach(tl, CAU_HINH_MAC_DINH);
+      cssDanhSach(tl, K_HIEN);
   }
   // Chữ: chỉ độ đậm 400 / 700 (800 → Chrome chọn "Arial Black" không có chữ Việt); phông dự phòng Arial
   function kieuChu(o) {
@@ -194,9 +265,19 @@
       "#pg-dung .pgd-mon .pgd-kt{margin-left:auto;padding-left:2mm;" + kieuChu(K.ktgh) + ";white-space:nowrap}\n" +
       "#pg-dung .pgd-mon .pgd-d2{" + kieuChu(K.ten) + ";line-height:1.12;margin-top:0.15mm}\n" +
       // Chân tờ: Thùng (trái) + Tổng tiền (phải) cùng 1 dòng
-      "#pg-dung .pgd-hang-tong{display:flex;justify-content:space-between;align-items:baseline;gap:3mm;flex-wrap:wrap}\n" +
-      "#pg-dung .pgd-hang-tong .inv-total{margin-left:auto!important;margin-top:0!important}\n" +
-      "#pg-dung .pgd-hang-tong .pg-thung{margin:0}\n";
+      // 24/11 (chủ dự án): chân tờ = "Thùng: …  |  ▼ 1/2 (còn tiếp) / ■ 2/2 (hết đơn)  |  Tổng tiền: …" trên MỌI tờ (lưới 3 cột)
+      "#pg-dung .pgd-hang-tong{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;column-gap:3mm}\n" +
+      "#pg-dung .pgd-hang-tong>:first-child{justify-self:start}\n" +
+      "#pg-dung .pgd-hang-tong .inv-total{justify-self:end;margin:0!important;text-align:right!important;white-space:nowrap}\n" +
+      "#pg-dung .pgd-hang-tong .pg-thung{margin:0}\n" +
+      "#pg-dung .pgd-to-chi{justify-self:center;font-weight:700;font-size:16px;white-space:nowrap}\n" +
+      // tờ 2 trở đi: 1 dòng gọn "MĐH: … · tờ 2/3" thay dải có khung
+      "#pg-dung .pgd-dau-nho{display:flex;justify-content:space-between;gap:6px;font-size:" + p(14) + ";font-weight:700;white-space:nowrap;" +
+      "border-bottom:2px solid #000;padding-bottom:" + p(2) + ";margin-bottom:" + p(2) + "}\n" +
+      // A4: 2 cột — cột trái đầy rồi mới sang cột phải; vạch dọc ngăn 2 cột
+      "#pg-dung .pgd-ds.hai-cot{display:flex;gap:0;align-items:flex-start}\n" +
+      "#pg-dung .pgd-ds.hai-cot .pgd-cot{flex:1 1 0;min-width:0}\n" +
+      "#pg-dung .pgd-ds.hai-cot .pgd-cot+.pgd-cot{border-left:1px solid #000;margin-left:3mm;padding-left:3mm}\n";
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function e(tag, cls, html) { const x = document.createElement(tag); if (cls) x.className = cls; if (html != null) x.innerHTML = html; return x; }
@@ -206,7 +287,7 @@
   }
   function dongThung(skus) {
     try {
-      const K = CAU_HINH_MAC_DINH;
+      const K = K_HIEN;
       if (!window.KichThuoc || K.dongThung === "an") return "";
       const th = window.KichThuoc.thungLonNhat(skus); if (!th) return "";
       if (K.dongThung === "ten") return '<div class="pg-thung">Thùng: ' + esc(th) + "</div>";
@@ -215,11 +296,11 @@
     } catch (er) { return ""; }
   }
   function ktgh(sku) {
-    try { return CAU_HINH_MAC_DINH.hienKtgh && window.KichThuoc ? window.KichThuoc.noiDungKtgh(sku) || "" : ""; } catch (er) { return ""; }
+    try { return K_HIEN.hienKtgh && window.KichThuoc ? window.KichThuoc.noiDungKtgh(sku) || "" : ""; } catch (er) { return ""; }
   }
   // 1 khối mã hàng (2 dòng)
   function khoiMon(it) {
-    const K = CAU_HINH_MAC_DINH;
+    const K = K_HIEN;
     const q = String(it.qty);
     const sl = parseInt(q, 10) > 1 && K.khoanhTron ? '<span class="pgd-tron">' + esc(q) + "</span>" : esc(q);
     const kt = ktgh(it.sku);
@@ -246,9 +327,10 @@
   // don = { ma, vd, box (invoice-box gốc trên màn hình), skus:[...], soSp, soNhan (số trang nhãn) } → các tờ HTML trong goc
   // 23/11 tối: phần hàng = DANH SÁCH (khoiMon) thay bảng; đầu tờ tự dựng "MVĐ · MĐH · [TỜ 1/N]"; chân tờ = phần sau bảng của
   // tờ đơn gốc (Dễ vỡ / tổng tiền…) thu theo tl, "Thùng" + "Tổng tiền" cùng 1 dòng, nhãn tổng tiền = CAU_HINH.nhanTong.
-  function chiaDon(goc, don, tl, nhanCaoPt) {
-    const LE_PX = LE_MM * 96 / 25.4;
-    const K = CAU_HINH_MAC_DINH;
+  function chiaDon(goc, don, tl, nhanCaoPt, kho) {
+    kho = kho || KHO.nhiet;
+    const LE_PX = kho.le * 96 / 25.4;
+    const K = K_HIEN;
     const ban = don.box.cloneNode(true);
     ban.querySelectorAll(".btn-copy-don,.mi-qr,.mi-thung").forEach(function (x) { x.remove(); }); // bỏ QR + Thùng của mẫu in
     const bang = ban.querySelector("table.inv-table");
@@ -270,74 +352,91 @@
 
     function chia(coNhieu) {
       const cacTo = [];
-      function datChan(c, cuoiCung) {
+      // 24/11 (chủ dự án): MỌI tờ có chân ĐẦY ĐỦ — Dễ vỡ (nếu có) + "Thùng | ▼ x/N hoặc ■ N/N | Tổng tiền" (bỏ dòng CÒN TIẾP / HẾT ĐƠN)
+      function datChan(c) {
         c.trai.innerHTML = "";
-        if (cuoiCung) {
-          const vo = e("div", "pg-trai-in");
-          let daThem = false;
-          cuoi.map(function (x) { return x.cloneNode(true); }).forEach(function (x) {
-            const tong = doiNhanTong(x);
-            if (!daThem && tong) {
-              // "Thùng" (trái) + "Tổng tiền" (phải) chung 1 dòng
-              const hang = e("div", "pgd-hang-tong", thung);
-              if (tong === x) { hang.appendChild(x); vo.appendChild(hang); }
-              else { tong.parentNode.insertBefore(hang, tong); hang.appendChild(tong); vo.appendChild(x); }
-              daThem = true; return;
-            }
-            vo.appendChild(x);
-          });
-          if (thung && !daThem) vo.insertAdjacentHTML("beforeend", thung);
-          if (coNhieu) vo.appendChild(e("div", "pg-het-don", "■ HẾT ĐƠN — " + don.skus.length + " mã · " + tongSp + " sản phẩm"));
-          c.trai.appendChild(vo);
-          c.trai.style.height = (vo.getBoundingClientRect().height) + "px";
-        } else {
-          c.trai.style.height = "";
-          c.trai.appendChild(e("div", "pg-con-tiep", "▼ CÒN TIẾP — XEM TỜ SAU ▼"));
-        }
+        const vo = e("div", "pg-trai-in");
+        let daThem = false;
+        cuoi.map(function (x) { return x.cloneNode(true); }).forEach(function (x) {
+          const tong = doiNhanTong(x);
+          if (!daThem && tong) {
+            const hang = e("div", "pgd-hang-tong", (thung || "<span></span>") + '<span class="pgd-to-chi"></span>');
+            if (tong === x) { hang.appendChild(x); vo.appendChild(hang); }
+            else { tong.parentNode.insertBefore(hang, tong); hang.appendChild(tong); vo.appendChild(x); }
+            daThem = true; return;
+          }
+          vo.appendChild(x);
+        });
+        if (!daThem) vo.insertAdjacentHTML("beforeend", '<div class="pgd-hang-tong">' + (thung || "<span></span>") + '<span class="pgd-to-chi"></span><span></span></div>');
+        c.trai.appendChild(vo);
+        c.trai.style.height = (vo.getBoundingClientRect().height) + "px";
         c.vung.style.bottom = (c.chan.offsetHeight + 2 + LE_PX) + "px";
       }
       function toMoi() {
         const coNhan = cacTo.length < don.soNhan, dauTien = cacTo.length === 0;
         const to = e("div", "pg-to"); if (coNhan) to.appendChild(e("div", "pg-cho-nhan"));
         const chan = e("div", "pg-chan"), trai = e("div", "pg-trai"); chan.appendChild(trai); to.appendChild(chan);
-        const vung = e("div", "pg-vung"); vung.style.top = coNhan ? nhanCaoPt.toFixed(2) + "pt" : LE_MM + "mm"; to.appendChild(vung);
+        const vung = e("div", "pg-vung"); vung.style.top = coNhan ? nhanCaoPt.toFixed(2) + "pt" : kho.le + "mm"; to.appendChild(vung);
         const box = e("div", "pgd-khung"); vung.appendChild(box);
-        // tờ đầu: KHÔNG có dải riêng ("TỜ 1/N" nằm cuối dòng đầu đơn); tờ sau: dải "TIẾP THEO — ĐƠN … TỜ x/N"
-        const dauTo = e("div", "pg-dau-to", "<span>TIẾP THEO — ĐƠN " + esc(don.ma) + '</span><span class="pg-so-to">TỜ 8/8</span>');
+        // tờ đầu: "TỜ 1/N" nằm cuối dòng đầu đơn; tờ sau: 1 dòng GỌN "MĐH: … · tờ x/N" (chủ dự án 24/11)
+        const dauTo = e("div", "pgd-dau-nho", "<span>MĐH: " + esc(don.ma) + '</span><span class="pg-so-to">tờ 8/8</span>');
         if (dauTien || !coNhieu) dauTo.style.display = "none";
         box.appendChild(dauTo);
         if (dauTien) box.appendChild(e("div", "pgd-dau-don", '<div class="pgd-mvd"><b>MVĐ:</b> ' + esc(don.vd) + '</div><div class="pgd-mdh">MĐH: ' +
           esc(don.ma) + "</div>" + (coNhieu ? '<div class="pgd-so-to-dau">TỜ 1/8</div>' : "")));
-        const ds = e("div", "pgd-ds"); box.appendChild(ds);
+        const soCot = kho.cot || 1;
+        const ds = e("div", "pgd-ds" + (soCot > 1 ? " hai-cot" : "")); box.appendChild(ds);
+        const cot = []; for (let k = 0; k < soCot; k++) cot.push(soCot > 1 ? ds.appendChild(e("div", "pgd-cot")) : ds);
         goc.appendChild(to);
-        const c = { to: to, vung: vung, box: box, ds: ds, dauTo: dauTo, trai: trai, chan: chan };
-        datChan(c, false); cacTo.push(c);
+        const c = { to: to, vung: vung, box: box, ds: ds, cot: cot, iCot: 0, dauTo: dauTo, trai: trai, chan: chan };
+        datChan(c); cacTo.push(c);
         return c;
       }
       function tran(c) { return c.box.getBoundingClientRect().height > c.vung.getBoundingClientRect().height - 1; }
+      function soMon(c) { return c.cot.reduce(function (s, k) { return s + k.children.length; }, 0); }
+      // đặt 1 khối vào tờ c: cột hiện tại tràn → sang cột kế; hết cột → tờ mới. Trả về tờ đang dùng.
+      function datMon(c, kh) {
+        for (;;) {
+          c.cot[c.iCot].appendChild(kh);
+          if (!tran(c) || soMon(c) === 1) return c;
+          c.cot[c.iCot].removeChild(kh);
+          if (c.iCot < c.cot.length - 1) { c.iCot++; continue; }
+          c = toMoi();
+        }
+      }
+      function layCuoi(c) { // lấy khối CUỐI (cột phải trước) — dùng khi chân tờ cuối không đủ chỗ
+        for (let k = c.cot.length - 1; k >= 0; k--) { const kh = c.cot[k].lastChild; if (kh) { c.cot[k].removeChild(kh); c.iCot = k; return kh; } }
+        return null;
+      }
       let c = toMoi();
-      dsMon.forEach(function (it) {
-        const kh = khoiMon(it);
-        c.ds.appendChild(kh);
-        if (tran(c) && c.ds.children.length > 1) { c.ds.removeChild(kh); c = toMoi(); c.ds.appendChild(kh); }
-      });
+      dsMon.forEach(function (it) { c = datMon(c, khoiMon(it)); });
       while (cacTo.length < don.soNhan) toMoi();
-      let L = cacTo[cacTo.length - 1]; datChan(L, true);
-      if (tran(L) && L.ds.children.length) {
+      let L = cacTo[cacTo.length - 1];
+      if (tran(L) && soMon(L)) {
         const doi = [];
-        while (tran(L) && L.ds.children.length > 0) { const r = L.ds.lastChild; L.ds.removeChild(r); doi.unshift(r); }
-        datChan(L, false); const M = toMoi(); doi.forEach(function (r) { M.ds.appendChild(r); }); datChan(M, true); L = M;
+        while (tran(L) && soMon(L) > 0) doi.unshift(layCuoi(L));
+        let M = toMoi(); doi.forEach(function (r) { M = datMon(M, r); }); L = M;
+      }
+      // 2 cột: tờ CUỐI chia đều 2 cột (cột trái ≥ cột phải, thứ tự đọc giữ nguyên: hết cột trái rồi sang cột phải)
+      if (L.cot.length === 2) {
+        const ct = L.cot[0], cp = L.cot[1];
+        while (cp.firstChild) ct.appendChild(cp.firstChild);
+        while (ct.children.length > 1) {
+          const kh = ct.lastChild, hk = kh.getBoundingClientRect().height;
+          if (ct.getBoundingClientRect().height - hk < cp.getBoundingClientRect().height + hk) break;
+          cp.insertBefore(kh, cp.firstChild);
+        }
       }
       const N = cacTo.length;
       cacTo.forEach(function (x, i) {
         if (N > 1) {
-          if (i > 0) { x.dauTo.style.display = ""; x.dauTo.querySelector(".pg-so-to").textContent = "TỜ " + (i + 1) + "/" + N; }
+          if (i > 0) { x.dauTo.style.display = ""; x.dauTo.querySelector(".pg-so-to").textContent = "tờ " + (i + 1) + "/" + N; }
           else { const sd = x.box.querySelector(".pgd-so-to-dau"); if (sd) sd.textContent = "TỜ 1/" + N; }
+          const chi = x.trai.querySelector(".pgd-to-chi"); if (chi) chi.textContent = (i < N - 1 ? "▼ " : "■ ") + (i + 1) + "/" + N; // ▼ còn tiếp · ■ hết đơn
         }
-        if (i < N - 1) { const ct = x.trai.querySelector(".pg-con-tiep"); if (ct) ct.textContent = "▼ CÒN TIẾP — XEM TỜ " + (i + 2) + "/" + N + " ▼"; }
       });
       // Số tờ DO DANH SÁCH HÀNG (tờ cuối còn món) — dùng cho gợi ý in A4 (bước 3); tờ chỉ chứa trang nhãn thứ 2+ không tính
-      let toDoDs = 0; cacTo.forEach(function (x, i) { if (x.ds.children.length) toDoDs = i + 1; });
+      let toDoDs = 0; cacTo.forEach(function (x, i) { if (soMon(x)) toDoDs = i + 1; });
       // lỗi: còn tràn, HOẶC số mã trong danh sách khác số mã trên tờ đơn (không để mất mã nào)
       const loi = cacTo.some(function (x) { return tran(x); }) || dsMon.length !== don.skus.length;
       return { cacTo: cacTo, N: N, loi: loi, toDoDs: toDoDs };
@@ -388,6 +487,7 @@
         const m = await docMaTrang(await moPdf(n.tep), n.trang.p);
         if (!m.vach.length && !m.qr.length) continue;                               // trang phụ — không có mã
         if (m.vach.length !== 1 || m.qr.length !== 1 || m.vach[0] !== m.qr[0]) return ""; // thiếu 1 loại / lệch / nhiều mã
+        if (m.vach[0] === String(don.ma || "").trim()) return "";                    // mã đọc được chính là MÃ ĐƠN → không phải MVĐ
         if (mvd && mvd !== m.vach[0]) return "";                                    // các trang nhãn khác MVĐ
         mvd = m.vach[0];
         const chu = String(n.trang.mvd || "").trim();                               // MVĐ đọc từ CHỮ trên phiếu (nếu có)
@@ -400,16 +500,38 @@
     }
   }
 
-  // dsDon: [{ ma, box, skus, soSp, nhan: [{ tep, p }] }] theo ĐÚNG thứ tự in. tl: tỉ lệ thu tờ đơn (0,5–1).
-  // → { bytes (PDF), soTo: [số tờ của từng đơn], tongTo, loi: [mã đơn bị tràn chữ] }
-  async function dung(dsDon, tl, khiTienDo) {
+  // Vị trí nhãn sàn trên 1 tờ theo khổ: cắt lề trắng (vùng có nội dung của cả file) → tỉ lệ + chiều cao phần nhãn.
+  //   nhiet: XOAY 90° cho vừa bề ngang 99 mm (≈65%) · a4: KHÔNG xoay, tối đa 100% (gần đúng cỡ gốc), canh giữa ở trên.
+  function hinhNhan(don, kho) {
+    const W = kho.w * MM, H = kho.h * MM, LE = kho.le * MM;
+    const t0 = don.nhan[0], hop = t0.tep.hop || { l: 0, r: t0.trang.w, t: 0, bt: t0.trang.h };
+    const bb = { left: Math.max(0, hop.l - LE_NHAN), right: Math.min(t0.trang.w, hop.r + LE_NHAN),
+      bottom: Math.max(0, t0.trang.h - hop.bt - LE_NHAN), top: Math.min(t0.trang.h, t0.trang.h - hop.t + LE_NHAN) };
+    const bw = bb.right - bb.left, bh = bb.top - bb.bottom;
+    if (kho.xoay) {
+      const tl = Math.min(kho.tlMax || Infinity, (W - 2 * LE) / bh), cao = LE + bw * tl;
+      return { bb: bb, tl: tl, nhanCao: cao, x: (W - bh * tl) / 2 + bh * tl, y: H - cao, xoay: true }; // canh giữa bề ngang
+    }
+    const tl = Math.min(1, (W - 2 * LE) / bw, (H * 0.6) / bh), cao = LE + bh * tl;
+    return { bb: bb, tl: tl, nhanCao: cao, x: (W - bw * tl) / 2, y: H - cao, xoay: false };
+  }
+  function laMvdThat(v) { v = String(v || "").trim(); return /[0-9A-Za-z]/.test(v) ? v : ""; } // "━━━" / trống = KHÔNG có MVĐ
+
+  // dsDon: [{ ma, vd, box, skus, soSp, nhan: [{ tep, trang }] }] theo ĐÚNG thứ tự in. tl: tỉ lệ thu đầu/chân tờ (0,5–1).
+  // tenKho: "nhiet" (mặc định, 99×154) | "a4" (24/11 — đơn dài).
+  // → { bytes (PDF), soTo: [số tờ từng đơn], tongTo, loi: [mã đơn tràn chữ / thiếu mã], toDoDs: [số tờ do danh sách], dienMvd: [{ma, mvd}] }
+  async function dung(dsDon, tl, khiTienDo, tenKho, hoiDung) {
+    const kiemDung = function () { if (typeof hoiDung === "function" && hoiDung()) { const er = new Error("Người dùng bấm Dừng"); er.daDung = true; throw er; } }; // 24/11: nút ⏹ Dừng
     await napThuVien();
     if (typeof window.html2canvas !== "function") throw new Error("Thiếu thư viện chụp ảnh (html2canvas) — tải lại trang");
+    const kho = KHO[tenKho] || KHO.nhiet;
+    K_HIEN = CAI_DAT[tenKho === "a4" ? "a4" : "nhiet"];
+    tl = K_HIEN.tl ? K_HIEN.tl / 100 : tl;
+    const W = kho.w * MM, H = kho.h * MM;
     const L = window.PDFLib;
     const doc = await L.PDFDocument.create();
     const daNapTep = new Map();
     const layTep = async function (tep) { if (!daNapTep.has(tep)) daNapTep.set(tep, await L.PDFDocument.load(tep.bytes.slice())); return daNapTep.get(tep); };
-    const LE = LE_MM * MM;
     const soTo = [], loi = [], toDoDs = [], dienMvd = [];
     let tongTo = 0;
     const pdfDoc = new Map(); // pdf.js của từng file nhãn — chỉ mở khi cần đọc mã vạch
@@ -422,27 +544,23 @@
     document.head.appendChild(kieu); document.body.appendChild(goc);
     try {
       for (let i = 0; i < dsDon.length; i++) {
+        kiemDung();
         const don = dsDon[i];
-        // khổ nhãn của trang đầu → tỉ lệ + chiều cao nửa trên (mọi trang của 1 file dùng chung vùng có nội dung)
-        const t0 = don.nhan[0], hop = t0.tep.hop || { l: 0, r: t0.trang.w, t: 0, bt: t0.trang.h };
-        const bb = { left: Math.max(0, hop.l - LE_NHAN), right: Math.min(t0.trang.w, hop.r + LE_NHAN),
-          bottom: Math.max(0, t0.trang.h - hop.bt - LE_NHAN), top: Math.min(t0.trang.h, t0.trang.h - hop.t + LE_NHAN) };
-        const bw = bb.right - bb.left, bh = bb.top - bb.bottom;
-        const tlNhan = (GIAY_W - 2 * LE) / bh, nhanCao = LE + bw * tlNhan;
-        kieu.textContent = cssTo(tl, nhanCao);
+        const hn = hinhNhan(don, kho);
+        kieu.textContent = cssTo(tl, hn.nhanCao, kho);
         goc.innerHTML = "";
-        let vd = String(don.vd || "").trim();
-        if (!/[0-9A-Za-z]/.test(vd)) vd = ""; // không có chữ / số (vd đường kẻ "━━━") = TRỐNG
+        let vd = laMvdThat(don.vd);
         if (!vd) { vd = await layMvd(don, moPdfDoc); if (vd) dienMvd.push({ ma: don.ma, mvd: vd }); }
-        const kq = chiaDon(goc, { ma: don.ma, vd: vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, nhanCao);
+        const kq = chiaDon(goc, { ma: don.ma, vd: vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, hn.nhanCao, kho);
         if (kq.loi) loi.push(don.ma);
         toDoDs.push(kq.toDoDs);
         for (let j = 0; j < kq.cacTo.length; j++) {
+          kiemDung();
           // ignoreElements: html2canvas mặc định chép CẢ trang (Bảng 1–3, mọi tờ đơn…) mỗi lần chụp → càng nhiều đơn càng chậm.
           // Chỉ giữ khung dựng #pg-dung + thẻ style/link (bỏ các khối khác ngay dưới <body>).
-          // Tờ có nhãn: KHÔNG chụp nửa trên (chỉ là nền trắng chờ nhãn) → ảnh nhỏ gần một nửa, file nhẹ, dựng nhanh hơn.
+          // Tờ có nhãn: KHÔNG chụp phần trên (chỉ là nền trắng chờ nhãn) → ảnh nhỏ hơn, file nhẹ, dựng nhanh hơn.
           const elTo = kq.cacTo[j].to, r = elTo.getBoundingClientRect();
-          const catTren = j < don.nhan.length ? Math.max(0, nhanCao * 96 / 72 - 2) : 0; // px CSS (giữ lại đường kẻ đứt ngăn 2 nửa)
+          const catTren = j < don.nhan.length ? Math.max(0, hn.nhanCao * 96 / 72 - 2) : 0; // px CSS (giữ lại đường kẻ đứt ngăn 2 phần)
           const cv = await window.html2canvas(elTo, { scale: DPI / 96, backgroundColor: "#ffffff", logging: false, useCORS: true,
             ignoreElements: function (el) { return el.parentNode === document.body && el !== goc && el.tagName !== "STYLE" && el.tagName !== "LINK"; } });
           // cắt bỏ phần trắng phía trên NGAY TRÊN ẢNH (tùy chọn cắt x/y của html2canvas sai với khung nằm ngoài màn hình → mất tờ đơn)
@@ -457,14 +575,14 @@
           const jpg = await new Promise(function (ok) { cvRa.toBlob(ok, "image/jpeg", CHAT_LUONG_JPEG); });
           if (cvRa !== cv) cvRa.width = cvRa.height = 0;
           const anh = await doc.embedJpg(new Uint8Array(await jpg.arrayBuffer()));
-          const trang = doc.addPage([GIAY_W, GIAY_H]);
-          const caoAnh = GIAY_H * (r.height - catTren) / r.height;
-          trang.drawImage(anh, { x: 0, y: 0, width: GIAY_W, height: caoAnh });
+          const trang = doc.addPage([W, H]);
+          trang.drawImage(anh, { x: 0, y: 0, width: W, height: H * (r.height - catTren) / r.height });
           if (j < don.nhan.length) {
             const n = don.nhan[j];
             const nguon = await layTep(n.tep);
-            const nhan = await doc.embedPage(nguon.getPage(n.trang.p - 1), bb);
-            trang.drawPage(nhan, { x: LE + bh * tlNhan, y: GIAY_H - nhanCao, xScale: tlNhan, yScale: tlNhan, rotate: L.degrees(90) });
+            const nhan = await doc.embedPage(nguon.getPage(n.trang.p - 1), hn.bb);
+            trang.drawPage(nhan, hn.xoay ? { x: hn.x, y: hn.y, xScale: hn.tl, yScale: hn.tl, rotate: L.degrees(90) }
+              : { x: hn.x, y: hn.y, xScale: hn.tl, yScale: hn.tl });
           }
           cv.width = cv.height = 0;
         }
@@ -472,6 +590,7 @@
         if (khiTienDo) khiTienDo(i + 1, dsDon.length);
         await new Promise(function (ok) { setTimeout(ok, 0); }); // nhường trình duyệt vẽ lại tiến độ → trang không "đứng hình"
       }
+      kiemDung();
       const bytes = await doc.save({ useObjectStreams: false });
       return { bytes: bytes, soTo: soTo, tongTo: tongTo, loi: loi, toDoDs: toDoDs, dienMvd: dienMvd };
     } finally {
@@ -480,6 +599,50 @@
     }
   }
 
-  window.DungPhieuGop = { napThuVien: napThuVien, docPdf: docPdf, dung: dung, GIAY: { W_MM: GIAY_W_MM, H_MM: GIAY_H_MM }, CAU_HINH_MAC_DINH: CAU_HINH_MAC_DINH,
-    _cssInGoc: CSS_IN_GOC, _ghepDong: ghepDong, _vanTay: vanTay, _layDanhSach: layDanhSach, _layMvd: layMvd };
+  // 24/11 (bước 3): ĐO NHANH số tờ khổ 99×154 của từng đơn (chỉ xếp chữ, KHÔNG chụp ảnh, KHÔNG đọc mã vạch) → gợi ý in A4.
+  // MVĐ trống → dùng chuỗi dài tạm để đo (tờ in thật sẽ được tự điền). → [{ ma, toDoDs, soTo }]
+  function demTo(dsDon, tl) {
+    const kho = KHO.nhiet, ra = [];
+    K_HIEN = CAI_DAT.nhiet; tl = K_HIEN.tl ? K_HIEN.tl / 100 : tl;
+    const goc = e("div"); goc.id = "pg-dung";
+    const kieu = document.createElement("style");
+    document.head.appendChild(kieu); document.body.appendChild(goc);
+    try {
+      dsDon.forEach(function (don) {
+        if (!don.nhan || !don.nhan.length) return;
+        try {
+          const hn = hinhNhan(don, kho);
+          kieu.textContent = cssTo(tl, hn.nhanCao, kho);
+          goc.innerHTML = "";
+          const kq = chiaDon(goc, { ma: don.ma, vd: laMvdThat(don.vd) || "SPXVN00000000000B", box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, hn.nhanCao, kho);
+          ra.push({ ma: don.ma, toDoDs: kq.toDoDs, soTo: kq.N });
+        } catch (er) { console.warn("[PhieuGop] Không đo được số tờ đơn " + don.ma + ":", er); }
+      });
+    } finally { goc.remove(); kieu.remove(); }
+    return ra;
+  }
+
+  // khung: phần tử chứa · don: { ma, vd, box (invoice-box mẫu), skus, soSp } · caiDat: 1 bộ cài đặt giấy · tenKho · nhanW/nhanH: khổ nhãn (điểm)
+  // → tờ ĐẦU TIÊN được đặt trong khung (id "pg-dung" để dùng chung CSS), nửa nhãn là ô xám ghi "NHÃN SÀN".
+  function xemTruoc(khung, don, caiDat, tenKho, nhanW, nhanH) {
+    const kho = KHO[tenKho] || KHO.nhiet;
+    K_HIEN = caiDat;
+    const nhanGia = { nhan: [{ tep: { hop: null }, trang: { w: nhanW || 297, h: nhanH || 420 } }] };
+    const hn = hinhNhan(nhanGia, kho);
+    khung.innerHTML = "";
+    const kieu = document.createElement("style");
+    kieu.textContent = cssTo(caiDat.tl / 100, hn.nhanCao, kho) + "#pg-dung{position:relative!important;left:0!important}\n" +
+      "#pg-dung .pg-cho-nhan{background:repeating-linear-gradient(45deg,#f8f9fa 0 6px,#eef0f2 6px 12px);display:flex;align-items:center;justify-content:center;color:#5f6368;font:700 13px Arial,sans-serif;text-align:center}\n";
+    const goc = e("div"); goc.id = "pg-dung";
+    khung.appendChild(kieu); khung.appendChild(goc);
+    const kq = chiaDon(goc, { ma: don.ma, vd: don.vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: 1 }, caiDat.tl / 100, hn.nhanCao, kho);
+    kq.cacTo.slice(1).forEach(function (x) { x.to.remove(); });
+    const nhan = goc.querySelector(".pg-cho-nhan"); if (nhan) nhan.innerHTML = "NHÃN SÀN<br>(phiếu đóng gói gốc, lật ngang, " + Math.round(hn.tl * 100) + "%)";
+    K_HIEN = CAI_DAT.nhiet;
+    return { soTo: kq.N, to: goc.querySelector(".pg-to") };
+  }
+
+  window.DungPhieuGop = { napThuVien: napThuVien, docPdf: docPdf, dung: dung, demTo: demTo, xemTruoc: xemTruoc, phanTichBang: phanTichBang, CAI_DAT: CAI_DAT,
+    PHONG_HOP_LE: PHONG_HOP_LE, DONG_THUNG_HOP_LE: DONG_THUNG_HOP_LE, GIAY: { W_MM: GIAY_W_MM, H_MM: GIAY_H_MM }, KHO: KHO,
+    CAU_HINH_MAC_DINH: CAU_HINH_MAC_DINH, _cssInGoc: CSS_IN_GOC, _ghepDong: ghepDong, _vanTay: vanTay, _layDanhSach: layDanhSach, _layMvd: layMvd };
 })();
