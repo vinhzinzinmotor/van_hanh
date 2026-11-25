@@ -88,6 +88,13 @@
       <label class="hang"><input type="checkbox" id="duongKe"> Đường kẻ ngăn giữa các mã</label>
       <label class="hang"><input type="checkbox" id="hienKtgh"> Hiện KTGH (tên thùng / kích thước) cuối dòng mã</label>
     </div>
+    <div class="the" id="the-tu-co">
+      <h2>⑥ Tự thu nhỏ chữ cho đơn dài<span class="ten-giay"></span></h2>
+      <label class="hang"><input type="checkbox" id="tuCo"> Đơn dài: tự thu nhỏ mọi chữ danh sách (cùng tỉ lệ) để vừa 1 tờ</label>
+      <p class="goi-y">Đơn vừa sẵn 1 tờ giữ nguyên cỡ chữ ở ①. Chữ không nhỏ hơn "sàn đáy" dưới đây; chạm sàn mà vẫn không vừa → giữ cỡ ①, sang tờ 2 / gợi ý A4 như cũ. Tên sản phẩm luôn in đủ.</p>
+      <table class="chu"><thead><tr><th>Dòng</th><th>Sàn đáy (cỡ nhỏ nhất)</th></tr></thead><tbody id="bang-san"></tbody></table>
+      <p class="chu-thich" id="ghi-tu-co" hidden></p>
+    </div>
     <div class="the">
       <h2>③ Chân tờ<span class="ten-giay"></span></h2>
       <div class="dong2"><span>Chữ nhãn tổng tiền</span><input type="text" id="nhanTong" maxlength="30"></div>
@@ -122,6 +129,7 @@
     <div class="the">
       <h2>👁 Xem trước</h2>
       <div class="tab-xem"><button data-kho="nhiet" class="dang">🧾 Giấy nhiệt 99×154</button><button data-kho="a4">📄 A4 (đơn dài)</button></div>
+      <div class="dong2" id="chon-so-mon"><span>Số mã của đơn mẫu</span><span class="so"><button type="button" data-so-mon="-1" aria-label="Bớt mã">−</button><input id="soMon" inputmode="numeric" aria-label="Số mã đơn mẫu"><button type="button" data-so-mon="1" aria-label="Thêm mã">+</button></span></div>
       <div class="giay-khung" id="giay-khung"></div>
       <p class="chu-thich" id="ghi-xem"></p>
     </div>

@@ -50,7 +50,12 @@
     hienKtgh: true,          // hiện KTGH (tên thùng → D×R×C → trống)
     nhanTong: "Tổng tiền:",  // chữ nhãn tổng tiền (thay "Total Price:" của mẫu — chỉ trên phiếu gộp)
     dongThung: "ten_kt",     // ten_kt = "Thùng: [N3 20×10×10]" · ten = "Thùng: N3" · an = ẩn
+    // 25/11 (chủ dự án): TỰ THU NHỎ chữ danh sách cho đơn dài để VỪA 1 TỜ. Mặc định trong code = TẮT (bảng chưa nâng cấp → y như cũ).
+    // Mọi chữ danh sách thu CÙNG tỉ lệ; từng chữ không nhỏ hơn "sàn đáy" của nó; chạm sàn vẫn không vừa → giữ 100%, sang tờ 2 / gợi ý A4.
+    tuCo: false,
+    minMa: 10, minSl: 12, minViTri: 10, minKtgh: 8, minTen: 8,
   };
+  const KHOA_MIN = { ma: "minMa", sl: "minSl", viTri: "minViTri", ktgh: "minKtgh", ten: "minTen" };
   // ── 24/11 (bước 4): CÀI ĐẶT RIÊNG từng loại giấy, đọc từ tab PHIEU_GOP (cau_dao_phieu_gop.js đọc sẵn → PHIEU_GOP_CAU_HINH.bang).
   //    LƯỚI AN TOÀN 3 TẦNG cho TỪNG Ô: ô cài đặt hợp lệ → ô MẶC ĐỊNH trên Sheet hợp lệ → số trong code (CAU_HINH_MAC_DINH).
   //    Danh sách hợp lệ PHẢI giống apps_script/phieu_gop.gs.
@@ -82,7 +87,9 @@
     };
     const kq = { nhiet: {}, a4: {}, md: { nhiet: {}, a4: {} }, canhBao: canhBao };
     const DON = [["TL_PHIEU_GOP", "tl", ktTl], ["NHAN_TONG_TIEN", "nhanTong", ktChu], ["DONG_THUNG", "dongThung", ktTrong(DONG_THUNG_HOP_LE)],
-      ["KHOANH_TRON_SL", "khoanhTron", ktO], ["DUONG_KE", "duongKe", ktO], ["HIEN_KTGH", "hienKtgh", ktO]];
+      ["KHOANH_TRON_SL", "khoanhTron", ktO], ["DUONG_KE", "duongKe", ktO], ["HIEN_KTGH", "hienKtgh", ktO],
+      ["TU_CO_CHU", "tuCo", ktO], ["CO_MIN_MA_HANG", "minMa", ktCo], ["CO_MIN_SO_LUONG", "minSl", ktCo], ["CO_MIN_VI_TRI", "minViTri", ktCo],
+      ["CO_MIN_KTGH", "minKtgh", ktCo], ["CO_MIN_TEN_SP", "minTen", ktCo]];
     ["nhiet", "a4"].forEach(function (g, gi) {
       DON.forEach(function (x) {
         const d = tim(x[0]) || [];
@@ -104,6 +111,7 @@
     const dn = tim("NGUONG_A4") || [];
     const n = chon(ktNguong, dn[1], dn[3], 2, "NGUONG_A4"); kq.nguongA4 = n.v; kq.md.nguongA4 = n.md;
     const cn = tim("CAP_NHAT"); kq.capNhat = cn && cn[1] != null ? String(cn[1]) : "";
+    kq.coTuCo = moi && !!tim("TU_CO_CHU"); // 25/11: bảng đã nâng cấp (Apps Script code 3) → trang 🎨 mới cho lưu phần tự thu nhỏ
     return kq;
   }
   // Cài đặt đang dùng (đọc 1 lần khi nạp file): bảng chưa nâng cấp / không đọc được → mọi ô theo code
@@ -244,6 +252,8 @@
   }
   function cssDanhSach(tl, K) {
     const p = function (v) { return (v * tl).toFixed(1) + "px"; };
+    const f = K.thu > 0 && K.thu < 1 ? K.thu : 1; // 25/11: tỉ lệ tự thu nhỏ của đơn đang dựng → khoảng cách danh sách thu theo
+    const mm = function (v) { return (v * f).toFixed(2) + "mm"; };
     return "#pg-dung .pgd-khung{padding-top:1.5mm;box-sizing:border-box}\n" +
       "#pg-dung .pgd-khung .pg-dau-to{font-size:12px}\n#pg-dung .pgd-khung .pg-dau-to .pg-so-to{font-size:15px}\n" +
       // Đầu đơn = mẫu in × tl, 1 dòng: MVĐ · MĐH · [TỜ 1/N]
@@ -253,13 +263,13 @@
       "#pg-dung .pgd-dau-don .pgd-mdh{font-size:" + p(14) + ";font-weight:700;white-space:nowrap}\n" +
       "#pg-dung .pgd-dau-don .pgd-so-to-dau{font-size:" + p(14) + ";font-weight:700;border:2px solid #000;padding:0 4px;white-space:nowrap}\n" +
       // Danh sách: mỗi mã 2 dòng
-      "#pg-dung .pgd-mon{display:grid;grid-template-columns:9mm 1fr;column-gap:2.5mm;align-items:center;padding:0.6mm 0;" +
+      "#pg-dung .pgd-mon{display:grid;grid-template-columns:" + mm(9) + " 1fr;column-gap:" + mm(2.5) + ";align-items:center;padding:" + mm(0.6) + " 0;" +
       (K.duongKe ? "border-bottom:1px solid #000;" : "") + "}\n" +
       "#pg-dung .pgd-mon .pgd-sl{" + kieuChu(K.sl) + ";text-align:center;line-height:1}\n" +
       "#pg-dung .pgd-mon .pgd-tron{display:inline-flex;align-items:center;justify-content:center;min-width:" + Math.round(K.sl.co * 1.55) + "px;height:" +
       Math.round(K.sl.co * 1.55) + "px;padding:0 2px;border:1.5px solid #000;border-radius:999px;box-sizing:border-box}\n" +
       "#pg-dung .pgd-mon .pgd-nd{min-width:0}\n" +
-      "#pg-dung .pgd-mon .pgd-d1{display:flex;align-items:baseline;column-gap:5mm;flex-wrap:wrap;line-height:1.08}\n" +
+      "#pg-dung .pgd-mon .pgd-d1{display:flex;align-items:baseline;column-gap:" + mm(5) + ";flex-wrap:wrap;line-height:1.08}\n" +
       "#pg-dung .pgd-mon .pgd-ma{" + kieuChu(K.ma) + ";overflow-wrap:anywhere}\n" +
       "#pg-dung .pgd-mon .pgd-vt{" + kieuChu(K.viTri) + ";overflow-wrap:anywhere}\n" +
       "#pg-dung .pgd-mon .pgd-kt{margin-left:auto;padding-left:2mm;" + kieuChu(K.ktgh) + ";white-space:nowrap}\n" +
@@ -418,13 +428,16 @@
         let M = toMoi(); doi.forEach(function (r) { M = datMon(M, r); }); L = M;
       }
       // 2 cột: tờ CUỐI chia đều 2 cột (cột trái ≥ cột phải, thứ tự đọc giữ nguyên: hết cột trái rồi sang cột phải)
+      // 25/11 SỬA LỖI (chủ dự án in A4 tỉ lệ 100 → mã cuối cột trái bị chân tờ che): bản cũ dồn HẾT sang cột trái rồi chuyển dần
+      //   sang phải → cột trái có thể DÀI HƠN chỗ trống (mã cột phải ngắn hơn) mà không đo lại. Nay chỉ CHUYỂN từ cuối cột trái sang
+      //   đầu cột phải (cột trái chỉ NGẮN đi — luôn vừa như lúc đặt), chuyển xong mà cột phải tràn → trả lại, dừng.
       if (L.cot.length === 2) {
         const ct = L.cot[0], cp = L.cot[1];
-        while (cp.firstChild) ct.appendChild(cp.firstChild);
         while (ct.children.length > 1) {
           const kh = ct.lastChild, hk = kh.getBoundingClientRect().height;
           if (ct.getBoundingClientRect().height - hk < cp.getBoundingClientRect().height + hk) break;
           cp.insertBefore(kh, cp.firstChild);
+          if (tran(L)) { ct.appendChild(kh); break; }
         }
       }
       const N = cacTo.length;
@@ -443,6 +456,50 @@
     }
     let kq = chia(false);
     if (kq.N > 1) { kq.cacTo.forEach(function (x) { x.to.remove(); }); kq = chia(true); }
+    return kq;
+  }
+
+  // ---------------------------------------------------------------------------------------------------
+  // 25/11 (chủ dự án) — TỰ THU NHỎ CHỮ DANH SÁCH cho đơn dài, bật / tắt bằng TU_CO_CHU (Sheet PHIEU_GOP / trang 🎨).
+  //   Đơn VỪA các tờ có nhãn ở 100% → giữ nguyên (đơn ngắn không đổi gì). Không vừa → thử 95%, 90%… cho MỌI chữ danh sách
+  //   (cùng tỉ lệ, khoảng cách thu theo); từng chữ không nhỏ hơn "sàn đáy" CO_MIN_… của nó. Tỉ lệ ĐẦU TIÊN vừa → dùng.
+  //   Mọi chữ chạm sàn mà vẫn không vừa → QUAY VỀ 100% (sang tờ 2 / gợi ý A4 như trước). Đo thật, không đếm số mã.
+  function kThu(K, s) { // bản cài đặt có chữ danh sách thu tỉ lệ s; sàn đáy lớn hơn cỡ đang dùng → giữ cỡ đang dùng (không phóng to)
+    const k2 = JSON.parse(JSON.stringify(K));
+    DONG_CHU.forEach(function (x) {
+      const o = k2[x[1]], san = Math.min(Number(K[KHOA_MIN[x[1]]]) || o.co, o.co);
+      o.co = Math.max(san, Math.round(o.co * s * 10) / 10);
+    });
+    k2.thu = s;
+    return k2;
+  }
+  function tiLeThap(K) { // tỉ lệ nhỏ nhất còn có ích = lúc MỌI chữ đã chạm sàn đáy
+    let s = 1;
+    DONG_CHU.forEach(function (x) { const o = K[x[1]], san = Math.min(Number(K[KHOA_MIN[x[1]]]) || o.co, o.co); s = Math.min(s, san / o.co); });
+    return Math.max(0.3, s);
+  }
+  // Như chiaDon + tự thu nhỏ. datCss(): ghi lại CSS dựng tờ theo K_HIEN hiện tại. Vừa ở tỉ lệ nào thì ĐỂ NGUYÊN K_HIEN + CSS đó
+  // cho bước chụp ảnh (nơi gọi tự đặt lại K_HIEN gốc trước đơn kế tiếp). Trả thêm kq.thu (1 = không thu).
+  function chiaDonTuCo(goc, don, tl, nhanCaoPt, kho, datCss) {
+    const K0 = K_HIEN;
+    let kq = chiaDon(goc, don, tl, nhanCaoPt, kho); kq.thu = 1;
+    const soToNhan = Math.max(1, don.soNhan || 1);
+    if (!K0.tuCo || kq.N <= soToNhan) return kq;
+    const thap = tiLeThap(K0);
+    const lechMa = layDanhSach(don.box).length !== (don.skus || []).length; // lỗi lệch số mã không do cỡ chữ → không cản việc thu
+    if (thap >= 0.999) return kq;
+    const buoc = [];
+    for (let s = 0.95; s > thap + 0.001; s = Math.round((s - 0.05) * 100) / 100) buoc.push(s);
+    buoc.push(Math.round(thap * 1000) / 1000);
+    for (let i = 0; i < buoc.length; i++) {
+      kq.cacTo.forEach(function (x) { x.to.remove(); });
+      K_HIEN = kThu(K0, buoc[i]); datCss();
+      kq = chiaDon(goc, don, tl, nhanCaoPt, kho); kq.thu = buoc[i];
+      if (kq.N <= soToNhan && (!kq.loi || lechMa)) return kq;
+    }
+    kq.cacTo.forEach(function (x) { x.to.remove(); });
+    K_HIEN = K0; datCss();
+    kq = chiaDon(goc, don, tl, nhanCaoPt, kho); kq.thu = 1;
     return kq;
   }
 
@@ -527,6 +584,8 @@
     const kho = KHO[tenKho] || KHO.nhiet;
     K_HIEN = CAI_DAT[tenKho === "a4" ? "a4" : "nhiet"];
     tl = K_HIEN.tl ? K_HIEN.tl / 100 : tl;
+    const K_GOC = K_HIEN; // 25/11: tự thu nhỏ có thể đổi K_HIEN cho 1 đơn → đặt lại đầu mỗi đơn
+    const thuDon = []; // tỉ lệ chữ danh sách từng đơn (1 = 100%)
     const W = kho.w * MM, H = kho.h * MM;
     const L = window.PDFLib;
     const doc = await L.PDFDocument.create();
@@ -547,11 +606,14 @@
         kiemDung();
         const don = dsDon[i];
         const hn = hinhNhan(don, kho);
-        kieu.textContent = cssTo(tl, hn.nhanCao, kho);
+        K_HIEN = K_GOC;
+        const datCss = function () { kieu.textContent = cssTo(tl, hn.nhanCao, kho); };
+        datCss();
         goc.innerHTML = "";
         let vd = laMvdThat(don.vd);
         if (!vd) { vd = await layMvd(don, moPdfDoc); if (vd) dienMvd.push({ ma: don.ma, mvd: vd }); }
-        const kq = chiaDon(goc, { ma: don.ma, vd: vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, hn.nhanCao, kho);
+        const kq = chiaDonTuCo(goc, { ma: don.ma, vd: vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, hn.nhanCao, kho, datCss);
+        thuDon.push(kq.thu);
         if (kq.loi) loi.push(don.ma);
         toDoDs.push(kq.toDoDs);
         for (let j = 0; j < kq.cacTo.length; j++) {
@@ -592,8 +654,9 @@
       }
       kiemDung();
       const bytes = await doc.save({ useObjectStreams: false });
-      return { bytes: bytes, soTo: soTo, tongTo: tongTo, loi: loi, toDoDs: toDoDs, dienMvd: dienMvd };
+      return { bytes: bytes, soTo: soTo, tongTo: tongTo, loi: loi, toDoDs: toDoDs, dienMvd: dienMvd, thu: thuDon };
     } finally {
+      K_HIEN = K_GOC;
       goc.remove(); kieu.remove();
       pdfDoc.forEach(function (p) { p.then(function (d) { d.destroy(); }).catch(function () {}); });
     }
@@ -612,13 +675,15 @@
         if (!don.nhan || !don.nhan.length) return;
         try {
           const hn = hinhNhan(don, kho);
-          kieu.textContent = cssTo(tl, hn.nhanCao, kho);
+          K_HIEN = CAI_DAT.nhiet;
+          const datCss = function () { kieu.textContent = cssTo(tl, hn.nhanCao, kho); };
+          datCss();
           goc.innerHTML = "";
-          const kq = chiaDon(goc, { ma: don.ma, vd: laMvdThat(don.vd) || "SPXVN00000000000B", box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, hn.nhanCao, kho);
-          ra.push({ ma: don.ma, toDoDs: kq.toDoDs, soTo: kq.N });
+          const kq = chiaDonTuCo(goc, { ma: don.ma, vd: laMvdThat(don.vd) || "SPXVN00000000000B", box: don.box, skus: don.skus, soSp: don.soSp, soNhan: don.nhan.length }, tl, hn.nhanCao, kho, datCss);
+          ra.push({ ma: don.ma, toDoDs: kq.toDoDs, soTo: kq.N, thu: kq.thu });
         } catch (er) { console.warn("[PhieuGop] Không đo được số tờ đơn " + don.ma + ":", er); }
       });
-    } finally { goc.remove(); kieu.remove(); }
+    } finally { K_HIEN = CAI_DAT.nhiet; goc.remove(); kieu.remove(); }
     return ra;
   }
 
@@ -631,15 +696,17 @@
     const hn = hinhNhan(nhanGia, kho);
     khung.innerHTML = "";
     const kieu = document.createElement("style");
-    kieu.textContent = cssTo(caiDat.tl / 100, hn.nhanCao, kho) + "#pg-dung{position:relative!important;left:0!important}\n" +
+    const datCss = function () { kieu.textContent = cssTo(caiDat.tl / 100, hn.nhanCao, kho) + THEM_XEM; };
+    const THEM_XEM = "#pg-dung{position:relative!important;left:0!important}\n" +
       "#pg-dung .pg-cho-nhan{background:repeating-linear-gradient(45deg,#f8f9fa 0 6px,#eef0f2 6px 12px);display:flex;align-items:center;justify-content:center;color:#5f6368;font:700 13px Arial,sans-serif;text-align:center}\n";
+    datCss();
     const goc = e("div"); goc.id = "pg-dung";
     khung.appendChild(kieu); khung.appendChild(goc);
-    const kq = chiaDon(goc, { ma: don.ma, vd: don.vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: 1 }, caiDat.tl / 100, hn.nhanCao, kho);
+    const kq = chiaDonTuCo(goc, { ma: don.ma, vd: don.vd, box: don.box, skus: don.skus, soSp: don.soSp, soNhan: 1 }, caiDat.tl / 100, hn.nhanCao, kho, datCss);
     kq.cacTo.slice(1).forEach(function (x) { x.to.remove(); });
     const nhan = goc.querySelector(".pg-cho-nhan"); if (nhan) nhan.innerHTML = "NHÃN SÀN<br>(phiếu đóng gói gốc, lật ngang, " + Math.round(hn.tl * 100) + "%)";
     K_HIEN = CAI_DAT.nhiet;
-    return { soTo: kq.N, to: goc.querySelector(".pg-to") };
+    return { soTo: kq.N, to: goc.querySelector(".pg-to"), thu: kq.thu };
   }
 
   window.DungPhieuGop = { napThuVien: napThuVien, docPdf: docPdf, dung: dung, demTo: demTo, xemTruoc: xemTruoc, phanTichBang: phanTichBang, CAI_DAT: CAI_DAT,

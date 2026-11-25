@@ -16,6 +16,7 @@
   const KHOA_TEN_NGUOI = "zzm_ten_nhan_vien";
   const TEN_GIAY = { nhiet: "Giấy nhiệt 99×154", a4: "A4" };
   const DONG = [["ma", "Mã hàng"], ["sl", "Số lượng"], ["viTri", "Vị trí kho"], ["ktgh", "KTGH"], ["ten", "Tên sản phẩm"]];
+  const SAN = { ma: "minMa", sl: "minSl", viTri: "minViTri", ktgh: "minKtgh", ten: "minTen" }; // 25/11: sàn đáy tự thu nhỏ chữ
   const $ = function (id) { return document.getElementById(id); };
   const esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   const sao = function (o) { return JSON.parse(JSON.stringify(o)); };
@@ -34,6 +35,13 @@
     ["23801-K56-NJ0", "1", "A-C7", "N2", "NHÔNG WN 15T VN"],
     ["83611-K2T-V00ZA", "1", "LE1-C4H3-01", "55×20×7", "NHỰA NHÁM ỐP GÁC CHÂN SAU LEAD22 TRÁI ĐEN VN"],
     ["81145-K59-A70ZA", "1", "VA2-C1H2-01", "N1", "NẮP KHẨN CẤP VA160 VA18 ĐEN *NH1* VN"],
+    // 25/11: thêm mã giả để xem thử đơn dài (tự thu nhỏ chữ)
+    ["91201-KZR-601", "2", "A-C5H1-08", "N1", "PHỐT CỐT MÁY BÊN TRÁI VIS15 VIS21 LEAD17 VN"],
+    ["06455-K59-A71", "1", "B-C1H2-04", "N2", "BỐ THẮNG ĐĨA TRƯỚC VA160 VA18 SH20 SH23 VN"],
+    ["31600-K66-V01", "1", "LE1-C2H1-02", "N2", "CỤC SẠC LEAD17 LEAD22 VIS21 VN"],
+    ["17910-K44-V00", "1", "A-C6H2-11", "N1", "DÂY GA AB13 AB16 VN"],
+    ["50601-K97-T00ZA", "2", "VA2-C3H3-05", "30×12×8", "GÁC CHÂN TRƯỚC PHẢI VA160 ĐEN VN"],
+    ["90302-GE2-901", "4", "A-C1H1-01", "N1", "ĐAI ỐC 10MM"],
   ];
   window.MISA_DIRECTORY = {}; const KT_MAU = {};
   MON_MAU.forEach(function (m) { window.MISA_DIRECTORY[m[0]] = { name: m[4], loc: m[2], hangDeVo: false }; KT_MAU[m[0]] = m[3]; });
@@ -54,6 +62,7 @@
   let kq = D.phanTichBang([]);             // kết quả đọc bảng (gồm md = cột MẶC ĐỊNH)
   let bo = { nhiet: sao(kq.nhiet), a4: sao(kq.a4) }, chung = { nguongA4: kq.nguongA4 };
   let daLuu = sao(bo), daLuuChung = sao(chung), capNhatCu = "", choLuu = false, kho = "nhiet", ch = bo.nhiet;
+  const soMonXem = { nhiet: 4, a4: 10 }; // số mã đơn mẫu đang xem (chỉ để xem, không lưu)
   try { $("nguoi").value = localStorage.getItem(KHOA_TEN_NGUOI) || ""; } catch (er) { /* bỏ qua */ }
 
   function bao(lop, html) { const b = $("bao"); b.className = lop || ""; b.innerHTML = html || ""; }
@@ -65,6 +74,19 @@
       D.PHONG_HOP_LE.map(function (p) { return '<option style="font-family:\'' + p + '\'">' + p + "</option>"; }).join("") + "</select></td></tr>";
   }).join("");
 
+  // ── ⑥ bảng sàn đáy (25/11) ──
+  $("bang-san").innerHTML = DONG.map(function (d) {
+    return "<tr><td>" + d[1] + '</td><td><span class="so"><button type="button" data-buoc-san="' + SAN[d[0]] + ':-0.5" aria-label="Giảm sàn đáy">−</button><input data-san="' + SAN[d[0]] + '" inputmode="decimal" aria-label="Sàn đáy ' + d[1] + '"><button type="button" data-buoc-san="' + SAN[d[0]] + ':0.5" aria-label="Tăng sàn đáy">+</button></span></td></tr>';
+  }).join("");
+  function napTuCo() { // bảng chưa nâng cấp (chưa có dòng TU_CO_CHU) → khóa phần ⑥ (lưu sẽ không ghi được)
+    const khoa = choLuu && !kq.coTuCo;
+    $("tuCo").checked = ch.tuCo;
+    document.querySelectorAll("[data-san]").forEach(function (el) { el.value = ch[el.getAttribute("data-san")]; });
+    document.querySelectorAll("#the-tu-co input, #the-tu-co button").forEach(function (el) { el.disabled = khoa; });
+    const g = $("ghi-tu-co"); g.hidden = !khoa;
+    g.textContent = khoa ? "⚠ Bảng PHIEU_GOP chưa có phần này — người quản trị cập nhật Apps Script «Phieu Gop ZZM» (code 3), chạy nangCapBangPhieuGop rồi triển khai phiên bản mới." : "";
+    $("soMon").value = soMonXem[kho];
+  }
   function nap() { // đổ giá trị của giấy đang chỉnh → các ô
     document.querySelectorAll("[data-o]").forEach(function (el) { const k = el.getAttribute("data-o").split("."), v = ch[k[0]][k[1]]; if (el.type === "checkbox") el.checked = v; else el.value = v; });
     ["khoanhTron", "duongKe", "hienKtgh"].forEach(function (k) { $(k).checked = ch[k]; });
@@ -74,6 +96,7 @@
     document.querySelectorAll("[data-kho]").forEach(function (x) { x.classList.toggle("dang", x.getAttribute("data-kho") === kho); });
     $("chep").textContent = "⧉ Chép sang " + (kho === "a4" ? "giấy nhiệt" : "A4");
     $("ve-md").textContent = "↺ Về mặc định — " + TEN_GIAY[kho];
+    napTuCo();
   }
   const GIOI_HAN = { co: [6, 30], tl: [50, 100], nguongA4: [2, 20] };
   function kep(k, v) { return Math.min(GIOI_HAN[k][1], Math.max(GIOI_HAN[k][0], v)); }
@@ -85,7 +108,9 @@
       if (el.type === "checkbox") ch[k[0]].dam = el.checked;
       else if (k[1] === "co") { const n = parseFloat(String(el.value).replace(",", ".")); if (isFinite(n) && n >= 6 && n <= 30) ch[k[0]].co = Math.round(n * 10) / 10; }
       else ch[k[0]][k[1]] = el.value;
-    } else if (["khoanhTron", "duongKe", "hienKtgh"].indexOf(el.id) >= 0) ch[el.id] = el.checked;
+    } else if (el.hasAttribute("data-san")) { const n2 = parseFloat(String(el.value).replace(",", ".")); if (isFinite(n2) && n2 >= 6 && n2 <= 30) ch[el.getAttribute("data-san")] = Math.round(n2 * 10) / 10; }
+    else if (el.id === "soMon") { const m3 = parseInt(el.value, 10); if (isFinite(m3) && m3 >= 1 && m3 <= MON_MAU.length) soMonXem[kho] = m3; }
+    else if (["khoanhTron", "duongKe", "hienKtgh", "tuCo"].indexOf(el.id) >= 0) ch[el.id] = el.checked;
     else if (el.id === "nhanTong") ch.nhanTong = el.value;
     else if (el.id === "tl") { const m = parseInt(el.value, 10); if (isFinite(m) && m >= 50 && m <= 100) ch.tl = m; }
     else if (el.id === "nguongA4") { const m2 = parseInt(el.value, 10); if (isFinite(m2) && m2 >= 2 && m2 <= 20) chung.nguongA4 = m2; }
@@ -95,10 +120,14 @@
   document.addEventListener("change", function (ev) {
     const el = ev.target;
     if (el.name === "dt") { ch.dongThung = el.value; nap(); ve(); return; }
-    if (el.hasAttribute("data-o") || ["tl", "nguongA4"].indexOf(el.id) >= 0) nap(); // ô gõ sai → hiện lại giá trị đang dùng
+    if (el.hasAttribute("data-o") || el.hasAttribute("data-san") || ["tl", "nguongA4", "soMon"].indexOf(el.id) >= 0) nap(); // ô gõ sai → hiện lại giá trị đang dùng
     if (el.id === "nguoi") { try { localStorage.setItem(KHOA_TEN_NGUOI, el.value.trim()); } catch (er) { /* bỏ qua */ } }
   });
   document.addEventListener("click", function (ev) {
+    const bs = ev.target.closest("[data-buoc-san]");
+    if (bs) { const p2 = bs.getAttribute("data-buoc-san").split(":"); ch[p2[0]] = kep("co", Math.round((ch[p2[0]] + parseFloat(p2[1])) * 10) / 10); nap(); ve(); return; }
+    const bm = ev.target.closest("[data-so-mon]");
+    if (bm) { soMonXem[kho] = Math.min(MON_MAU.length, Math.max(1, soMonXem[kho] + parseInt(bm.getAttribute("data-so-mon"), 10))); nap(); ve(); return; }
     const b = ev.target.closest("[data-buoc]");
     if (b) {
       const p = b.getAttribute("data-buoc").split(":"), k = p[0].split("."), buoc = parseFloat(p[1]);
@@ -126,6 +155,8 @@
       if (a.khoanhTron !== b.khoanhTron) tat.push(p + (b.khoanhTron ? "Bật" : "Tắt") + " khoanh tròn số lượng");
       if (a.duongKe !== b.duongKe) tat.push(p + (b.duongKe ? "Bật" : "Tắt") + " đường kẻ ngăn");
       if (a.hienKtgh !== b.hienKtgh) tat.push(p + (b.hienKtgh ? "Hiện" : "Ẩn") + " KTGH");
+      if (a.tuCo !== b.tuCo) tat.push(p + (b.tuCo ? "Bật" : "Tắt") + " tự thu nhỏ chữ cho đơn dài");
+      DONG.forEach(function (d) { const k = SAN[d[0]]; if (a[k] !== b[k]) tat.push(p + ten[d[0]] + ": sàn đáy " + a[k] + " → " + b[k]); });
       if (a.nhanTong !== b.nhanTong) tat.push(p + 'Nhãn tổng tiền: "' + a.nhanTong + '" → "' + b.nhanTong + '"');
       if (a.dongThung !== b.dongThung) tat.push(p + "Dòng Thùng: " + { ten_kt: "tên + kích thước", ten: "chỉ tên", an: "ẩn" }[b.dongThung]);
       if (a.tl !== b.tl) tat.push(p + "Tỉ lệ đầu / chân tờ: " + a.tl + "% → " + b.tl + "%");
@@ -143,11 +174,12 @@
     const a4 = kho === "a4";
     const khung = $("giay-khung");
     let r;
-    try { r = D.xemTruoc(khung, donMau(a4 ? 10 : 4), ch, kho, 297, 420); } catch (er) { console.error("[MauPhieuGop] Lỗi xem trước:", er); khung.textContent = "Không dựng được xem trước."; return; }
+    try { r = D.xemTruoc(khung, donMau(soMonXem[kho]), ch, kho, 297, 420); } catch (er) { console.error("[MauPhieuGop] Lỗi xem trước:", er); khung.textContent = "Không dựng được xem trước."; return; }
     const to = r.to, rong = khung.clientWidth - 24, tlXem = Math.min(1.6, rong / to.offsetWidth);
     to.style.transform = "scale(" + tlXem + ")";
     khung.style.height = (to.offsetHeight * tlXem + 24) + "px";
-    $("ghi-xem").textContent = (a4 ? "A4 — đơn mẫu 10 mã (dữ liệu giả): nhãn lật ngang cỡ gốc, danh sách 2 cột." : "Giấy nhiệt 99×154 — đơn mẫu 4 mã (dữ liệu giả).") +
+    $("ghi-xem").textContent = (a4 ? "A4 — đơn mẫu " + soMonXem[kho] + " mã (dữ liệu giả): nhãn lật ngang cỡ gốc, danh sách 2 cột." : "Giấy nhiệt 99×154 — đơn mẫu " + soMonXem[kho] + " mã (dữ liệu giả).") +
+      (r.thu && r.thu < 1 ? " Chữ danh sách tự thu còn " + Math.round(r.thu * 100) + "% để vừa 1 tờ." : "") +
       (r.soTo > 1 ? " Đơn mẫu cần " + r.soTo + " tờ (đang xem tờ 1)." : "");
     const tat = thayDoi();
     $("doi").innerHTML = tat.length ? "<b>Sẽ thay đổi " + tat.length + " điểm:</b><ul><li>" + tat.map(esc).join("</li><li>") + "</li></ul>" : "Chưa thay đổi gì.";
